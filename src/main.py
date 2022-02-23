@@ -1,148 +1,318 @@
-"""
-This module takes care of starting the API Server, Loading the DB and Adding the endpoints
-"""
-import os
-from flask import Flask, request, jsonify, url_for
-from flask_migrate import Migrate
-from flask_swagger import swagger
-from flask_cors import CORS
-from flask_login import LoginManager
-from utils import APIException, generate_sitemap
-from admin import setup_admin
-from models import db, User, Message, Network, Tag, College, Faculty, Class, File, Coll, Comment, LikedFiles, LikedColls
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import UserMixin
+from werkzeug.security import generate_password_hash, check_password_hash
+import datetime
 
-""" Initializes the database """
-app = Flask(__name__)
-app.url_map.strict_slashes = False
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DB_CONNECTION_STRING')
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-MIGRATE = Migrate(app, db)
-db.init_app(app)
-CORS(app)
-setup_admin(app)
-
-""" Configures the Login Manager & secret key for sessions """
-login_manager = LoginManager(app)
-login_manager.init_app(app)
-# TODO: Redirect user to the Log In page
-# login_manager.login_view = "login"
-app.secret_key = "4c73578c1dade3172998bfc97d1d14801e1a27c31ced907653f694efc939d017"
-
-# Handle/serialize errors like a JSON object
-@app.errorhandler(APIException)
-def handle_invalid_usage(error):
-    return jsonify(error.to_dict()), error.status_code
-
+db = SQLAlchemy()
 
 """
-! Callback to reload the user from the ID stored in the session
-* OvidioSantoro - 2022-02-23
+! Asociation tables for the Many-To-Many relationships
+* OvidioSantoro - 2022-02-22
 """
-@login_manager.user_loader
-def load_user(user_id):
-    if User.query.get(user_id):
-        return User.query.get(user_id)
-    else:
-        return None
+FacultyMembers = db.Table('faculty_members',
+    db.Column('user_id', db.ForeignKey("user.id"), primary_key=True),
+    db.Column('faculty_id', db.ForeignKey("faculty.id"), primary_key=True)
+)
 
+ClassStudents = db.Table('class_students',
+    db.Column('user_id', db.ForeignKey("user.id"), primary_key=True),
+    db.Column('class_id', db.ForeignKey("class.id"), primary_key=True)
+)
+
+UserTags = db.Table('user_tags',
+    db.Column('user_id', db.ForeignKey("user.id"), primary_key=True),
+    db.Column('tag_id', db.ForeignKey("tag.id"), primary_key=True)
+)
+
+FavoriteFiles = db.Table('favorite_files',
+    db.Column('user_id', db.ForeignKey("user.id"), primary_key=True),
+    db.Column('file_id', db.ForeignKey("file.id"), primary_key=True)
+)
+
+FavoriteColls = db.Table('favorite_colls',
+    db.Column('user_id', db.ForeignKey("user.id"), primary_key=True),
+    db.Column('coll_id', db.ForeignKey("coll.id"), primary_key=True)
+)
 
 """
-! Route to register a new user into the database
-* OvidioSantoro - 2022-02-23
+! Asociation object for the like tables
+* OvidioSantoro - 2022-02-22
+? Needed to handle the difference between like & dislike in one table
+? in this case we use a Boolean (True = Like, False = Dislike)
 """
-@app.route("/")
-def sitemap():
-    return generate_sitemap(app)
+class LikedFiles(db.Model):
+    user_id = db.Column(db.ForeignKey("user.id"), primary_key=True)
+    file_id = db.Column(db.ForeignKey("file.id"), primary_key=True)
+    is_like = db.Column(db.Boolean, default=True)
+    file_liker = db.relationship("User", back_populates="liked_files")
+    liked_file = db.relationship("File", back_populates="file_liked")
 
-@app.route('/user', methods=['GET'])
-def handle_hello():
+    def __repr__(self):
+        return f"{self.file_liker} like/dislike to {self.liked_file}"
 
-    response_body = {
-        "msg": "Hello, this is your GET /user response "
-    }
-
-    return jsonify(response_body), 200
-
-
-"""
-! Performs the Login
-* OvidioSantoro - 2022-02-23
-"""
-@app.route("/login", methods=["POST"])
-def login(request):
-    # TODO: Redirect if the user accesses /login beign already logged in
-    if current_user.is_authenticated:
-        return "You're already logged"
+    def serialize(self):
+        return{
+            "liker": self.file_liker,
+            "liked": self.liked_file,
+            "isLike": self.is_like,
+        }
     
-    # Check if the user is in the database
-    # TODO: add a double verification to allow logging in also with email
-    username = request.form["username"]
-    password = request.form["password"]
+class LikedColls(db.Model):
+    user_id = db.Column(db.ForeignKey("user.id"), primary_key=True)
+    coll_id = db.Column(db.ForeignKey("coll.id"), primary_key=True)
+    is_like = db.Column(db.Boolean, default=True)
+    coll_liker = db.relationship("User", back_populates="liked_colls")
+    liked_coll = db.relationship("Coll", back_populates="coll_liked")
 
-    user = User.query.filter_by(username=username)
-    if user is not None and user.check_password(password):
-        login_user(user, remember=form.remember_me.data)
-        # TODO: Redirect to the main page logged in
-        return "Very good, you're in!"
-    else: 
-        # TODO: Redirect back to the login page with the data already filled
-        return "Something went wrong, please check your data"
+    def __repr__(self):
+        return f"{self.coll_liker} like/dislike to {self.liked_coll}"
 
-
-"""
-! Logs out the user
-* OvidioSantoro - 2022-02-23
-"""
-@app.route("/logout")
-def logout():
-    logout_user()
-    # TODO: Redirect to the Landing Page
-    return "You're logged out"
-
+    def serialize(self):
+        return{
+            "liker": self.coll_liker,
+            "liked": self.liked_coll,
+            "isLike": self.is_like,
+        }
 
 """
-! Registers a User into the database
-* OvidioSantoro - 2022-02-23
+! Data Models
+* OvidioSantoro - 2022-02-21
 """
-@app.route("/register", methods=["POST"])
-def register(request):
+class Message(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    sender = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    receiver = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    content = db.Column(db.Text, nullable=False)
 
-    """ Check that every field is received """
-    data = request.form
-    try:
-        username = data["username"]
-        email = data["email"]
-        password = data["password"]
-        confirmation = data["confirmation"]
-        college = data["college"]
-        faculty = data["faculty"]
-        classes = data.getlist("classes")
-    except: 
-        return {"success": False,
-                "msg": "Unable to retrieve register data"}, 400
+    def __repr__(self):
+        return f"Message #{self.id} from User #{self.sender} to User #{self.receiver}"
 
-    if password != confirmation:
-        return {"success": False,
-                "msg": "Password confirmation incorrect"}, 400
-    
+    def serialize(self):
+        return{
+            "id": self.id,
+            "sender": self.sender,
+            "receiver": self.receiver,
+            "content": self.content,
+        }
 
-    """ Check that the unique properties are not already taken """
-    if User.query.filter_by(username=username):
-        return {"success": False,
-                "msg": "Username already in use"}, 400
+class User(db.Model, UserMixin):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(30), unique=True, nullable=False)
+    email = db.Column(db.String(60), unique=True, nullable=False)
+    password = db.Column(db.String(30), unique=False, nullable=False)
+    registered = db.Column(db.Date, default=datetime.date.today())
+    name = db.Column(db.String(30))
+    surname = db.Column(db.String(30))
+    description = db.Column(db.Text)
+    biography = db.Column(db.Text)
+    faculties = db.relationship("Faculty", secondary=FacultyMembers, back_populates="students")
+    classes = db.relationship("Class", secondary=ClassStudents, back_populates="students")
+    tags = db.relationship("Tag", secondary=UserTags, back_populates="users")
+    faved_files = db.relationship("File", secondary=FavoriteFiles, back_populates="file_faved")
+    liked_files = db.relationship("LikedFiles", back_populates="file_liker")
+    fav_colls = db.relationship("Coll", secondary=FavoriteColls, back_populates="favs_colls")
+    liked_colls = db.relationship("LikedColls", back_populates="coll_liker")
+    files = db.relationship("File", backref="uploader")
+    colls = db.relationship("Coll", back_populates="sender")
+    comments = db.relationship("Comment", back_populates="commenter")
+    sent = db.relationship("Message", backref="message_sender", foreign_keys=Message.sender)
+    received = db.relationship("Message", backref="message_receiver", foreign_keys=Message.receiver)
+    networks = db.relationship("Network", backref="network_owner")
 
-    if User.query.filter_by(email=email):
-        return {"success": False,
-                "msg": "Email already in registered"}, 400
+    def __repr__(self):
+        return f"{self.username}"
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "username": self.username,
+            "email": self.email,
+            "registered": self.registered,
+            "faculties": self.faculties,
+            "tags": self.tags,
+            "name": self.name,
+            "surname": self.surname,
+            "description": self.description,
+            "biography": self.biography
+        }
 
 
-    """ Register the user into the database """
-    User.register(username, email, password, college, faculty, classes)
-    # TODO: Add an actual response
-    # TODO: Ideally, auto-perform a login for the newly created user
-    return jsonify("USER REGISTERED")
+    """
+    ! Register the user into the database
+    * OvidioSantoro
+    ? Params: username, email, password, college, faculty, classes
+    """
+    # @classmethod TODO: Test if this is necessary
+    def register(cls, username, email, password, college, faculty, classes):
 
-# this only runs if `$ python src/main.py` is executed
-if __name__ == '__main__':
-    PORT = int(os.environ.get('PORT', 3000))
-    app.run(host='0.0.0.0', port=PORT, debug=False)
+        # Tansforms the necesary data into database indexes
+        # TODO: Probably move this to a middleware file
+        college_id = College.query.filter_by(name=college).id
+        faculty_id = Faculty.query.filter_by(name=faculty).id
+        classes_list = [Class.query.filter_by(name=_class).id for _class in classes]
+
+        # Creates a new User in the database
+        user = cls(
+            username=username, 
+            email=email, 
+            password=generate_password_hash(password),
+            college=college_id,
+            faculty=faculty_id,
+            classes=classes_list
+        )
+        db.session.add(user)
+        db.session.commit()
+
+    """
+    ! Checks the hashed password
+    * OvidioSantoro - 2022-02-23
+    """
+    def check_password(cls, password):
+        return check_password_hash(cls.password, password)
+
+
+class Network(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    owner = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    name = db.Column(db.String(20), nullable=False)
+    link = db.Column(db.String(30), nullable=False)
+
+    def __repr__(self):
+        return f"User #{self.owner}'s {self.name}: {self.link}"
+
+    def serialize(self):
+        return{
+            "id": self.id,
+            "owner": self.owner, 
+            "name": self.name ,
+            "link": self.link 
+        }
+
+class Tag(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(20))
+    users = db.relationship("User", secondary=UserTags, back_populates="tags")
+
+    def __repr__(self):
+        return f"Tag {self.name}"
+
+    def serialize(self):
+        return{
+            "id": self.id,
+            "name": self.name
+        }
+
+class College(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(60), nullable=False)
+    faculties = db.relationship("Faculty", back_populates="college")
+
+    def __repr__(self):
+        return f"{self.name}"
+
+    def serialize(self):
+        return{
+            "id": self.id,
+            "name": self.name
+        }
+
+class Faculty(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(60), nullable=False)
+    students = db.relationship("User", secondary=FacultyMembers, back_populates="faculties")
+    college_id = db.Column(db.Integer, db.ForeignKey("college.id"), nullable=False)
+    college = db.relationship("College", back_populates="faculties")
+    classes = db.relationship("Class", back_populates="faculty")
+
+    def __repr__(self):
+        return f"{self.name} from {self.college}"
+
+    def serialize(self):
+        return{
+            "id": self.id,
+            "name": self.name,
+            "college": self.college_id
+        }
+
+class Class(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(60), nullable=False)
+    faculty_id = db.Column(db.Integer, db.ForeignKey("faculty.id"))
+    faculty = db.relationship("Faculty", back_populates="classes")
+    students = db.relationship("User", secondary=ClassStudents, back_populates="classes")
+    files = db.relationship("File", back_populates="_class")
+    colls = db.relationship("Coll", back_populates="_class")
+
+    def __repr__(self):
+        return f"{self.name} in {self.faculty}"
+
+    def serialize(self):
+        return{
+            "id": self.id,
+            "name": self.name,
+            "faculty": self.faculty_id
+        }
+
+class File(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(60), nullable=False)
+    content = db.Column(db.String(120), nullable=False)
+    class_id = db.Column(db.Integer, db.ForeignKey("class.id"))
+    _class = db.relationship("Class", back_populates="files") 
+    uploader_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+    type = db.Column(db.String(12), nullable=False)
+    file_liked = db.relationship("LikedFiles", back_populates="liked_file")
+    file_faved = db.relationship("User", secondary=FavoriteFiles, back_populates="faved_files")
+
+    def __repr__(self):
+        return f"<{self.title}> uploaded by {self.uploader} in {self._class}"
+
+    def serialize(self):
+        return{
+            "id": self.id,
+            "content": self.content,
+            "uploader": self.uploader,
+            "class": self._class
+        }
+
+class Coll(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(60), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    sender_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+    sender = db.relationship("User", back_populates="colls")
+    class_id = db.Column(db.Integer, db.ForeignKey("class.id"))
+    _class = db.relationship("Class", back_populates="colls")
+    type = db.Column(db.String(12), nullable=False)
+    favs_colls = db.relationship("User", secondary=FavoriteColls, back_populates="fav_colls")
+    coll_liked = db.relationship("LikedColls", back_populates="liked_coll")
+    comments = db.relationship("Comment", back_populates="coll")
+
+    def __repr__(self):
+        return f"{self.title} in {self._class}"
+
+    def serialize(self):
+        return{
+            "id": self.id,
+            "title": self.title,
+            "class": self._class
+        }
+
+class Comment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    content = db.Column(db.Text, nullable=False)
+    commenter_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+    commenter = db.relationship("User", back_populates="comments")
+    coll_id = db.Column(db.Integer, db.ForeignKey("coll.id"))
+    coll = db.relationship("Coll", back_populates="comments")
+
+    def __repr__(self):
+        return f"User #{self.commenter} commented in '{self.coll}'"
+
+    def serialize(self):
+        return{
+            "id": self.id,
+            "commenter": self.commenter,
+            "coll": self.coll,
+            "content": self.content
+        }
