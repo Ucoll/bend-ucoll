@@ -1,4 +1,6 @@
 from flask_sqlalchemy import SQLAlchemy
+from flask_login import UserMixin
+from werkzeug.security import generate_password_hash, check_password_hash
 import datetime
 
 db = SQLAlchemy()
@@ -93,7 +95,7 @@ class Message(db.Model):
             "content": self.content,
         }
 
-class User(db.Model):
+class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(30), unique=True, nullable=False)
     email = db.Column(db.String(60), unique=True, nullable=False)
@@ -133,6 +135,41 @@ class User(db.Model):
             "description": self.description,
             "biography": self.biography
         }
+
+
+    """
+    ! Register the user into the database
+    * OvidioSantoro
+    ? Params: username, email, password, college, faculty, classes
+    """
+    # @classmethod TODO: Test if this is necessary
+    def register(cls, username, email, password, college, faculty, classes):
+
+        # Tansforms the necesary data into database indexes
+        # TODO: Probably move this to a middleware file
+        college_id = College.query.filter_by(name=college).id
+        faculty_id = Faculty.query.filter_by(name=faculty).id
+        classes_list = [Class.query.filter_by(name=_class).id for _class in classes]
+
+        # Creates a new User in the database
+        user = cls(
+            username=username, 
+            email=email, 
+            password=generate_password_hash(password),
+            college=college_id,
+            faculty=faculty_id,
+            classes=classes_list
+        )
+        db.session.add(user)
+        db.session.commit()
+
+    """
+    ! Checks the hashed password
+    * OvidioSantoro - 2022-02-23
+    """
+    def check_password(cls, password):
+        return check_password_hash(cls.password, password)
+
 
 class Network(db.Model):
     id = db.Column(db.Integer, primary_key=True)
