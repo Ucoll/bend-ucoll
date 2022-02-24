@@ -79,9 +79,9 @@ def unauthorized():
 * OvidioSantoro - 2022-02-24
 """
 @app.route("/inbox", methods=["GET"])
-@login_required
+#@login_required
 def receivedMessages():
-    return Message.receivedMessages(current_user.id)
+    return jsonify(list(map(lambda x: x.serialize(), Message.receivedMessages(current_user.get_id()).all())))
 
 
 """
@@ -91,7 +91,7 @@ def receivedMessages():
 @app.route("/inbox/sent", methods=["GET"])
 @login_required
 def sentMessages():
-    return "Message.sentMessages(current_user.id)"
+    return jsonify(list(map(lambda x: x.serialize(), Message.sentMessages(current_user.get_id()).all())))
 
 
 """

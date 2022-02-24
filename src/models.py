@@ -90,9 +90,9 @@ class Message(db.Model):
     def serialize(self):
         return{
             "id": self.id,
-            "sender": self.sender,
-            "receiver": self.receiver,
-            "content": self.content,
+            "sender": User.query.get(self.sender).username,
+            "receiver": User.query.get(self.receiver).username, 
+            "content": self.content
         }
 
     """
@@ -116,8 +116,8 @@ class Message(db.Model):
     * OvidioSantoro - 2022-02-24
     ? Params: user_id
     """
-    def sentMessages(cls, user_id):
-        messages = Message.query.filter_by(receiver=user_id)
+    def sentMessages(user_id):
+        messages = Message.query.filter_by(sender=user_id)
         return messages
 
     """
@@ -125,8 +125,8 @@ class Message(db.Model):
     * OvidioSantoro - 2022-02-24
     ? Params: user_id
     """
-    def receivedMessages(cls, user_id):
-        messages = Message.query.filter_by(sender=user_id)
+    def receivedMessages(user_id):
+        messages = Message.query.filter_by(receiver=user_id)
         return messages
 
 
