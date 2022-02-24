@@ -128,10 +128,10 @@ def login():
     username = request.form["username"]
     password = request.form["password"]
 
-    user = User.query.filter_by(username=username)
-    return jsonify(user.first().serialize())
+    user = User.query.filter_by(username=username).first()
     if user is not None and User.check_password(user.password, password):
-        login_user(user, remember=request.form["rememberme"])
+        login_user(user)
+        # login_user(user, remember=request.form["rememberme"])
         # TODO: Redirect to the main page logged in
         return "Very good, you're in!"
     else: 

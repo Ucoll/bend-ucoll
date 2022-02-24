@@ -10,9 +10,10 @@
 
 <body>
     <h2>CURRENT USER:</h2>
-    <h4>Anonymous: {{ user.is_anonymous }}</h4>
-    {% if user.is_anonymous == false %}
-        <h4>{{ user.get_id }}</h4>
+    <h3>Not logged: {{ user.is_anonymous }}</h3>
+    {% if user.is_authenticated %}
+        <h4>User Id: {{ user.get_id() }}</h4>
+        <h4>Username: {{ user }}</h4>
     {% endif %}
     <hr>
     <div style="display: flex;">

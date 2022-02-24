@@ -163,7 +163,7 @@ class User(db.Model, UserMixin):
             "username": self.username,
             "email": self.email,
             "registered": self.registered,
-            #"faculties": self.faculties,
+            "faculties": list(map(lambda x: x.serialize(), self.faculties)),
             "tags": self.tags,
             "name": self.name,
             "surname": self.surname,
@@ -196,8 +196,8 @@ class User(db.Model, UserMixin):
     ! Checks the hashed password
     * OvidioSantoro - 2022-02-23
     """
-    def check_password(cls, password):
-        return check_password_hash(cls.password, password)
+    def check_password(userPassword, password):
+        return check_password_hash(userPassword, password)
 
 
 class Network(db.Model):
