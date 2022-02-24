@@ -3,7 +3,7 @@ This module takes care of starting the API Server, Loading the DB and Adding the
 """
 #from crypt import methods
 import os
-from flask import Flask, request, jsonify, url_for
+from flask import Flask, render_template, request, jsonify, url_for
 from flask_migrate import Migrate
 from flask_swagger import swagger
 from flask_cors import CORS
@@ -54,6 +54,10 @@ def load_user(user_id):
 @app.route("/")
 def sitemap():
     return generate_sitemap(app)
+
+@app.route("/test")
+def test():
+    return render_template("test.html", user=current_user)
 
 @app.route('/user', methods=['GET'])
 def handle_hello():
@@ -114,7 +118,7 @@ def message(request):
 * OvidioSantoro - 2022-02-23
 """
 @app.route("/login", methods=["POST"])
-def login(request):
+def login():
     # TODO: Redirect if the user accesses /login beign already logged in
     if current_user.is_authenticated:
         return "You're already logged"
@@ -125,7 +129,8 @@ def login(request):
     password = request.form["password"]
 
     user = User.query.filter_by(username=username)
-    if user is not None and user.check_password(password):
+    return jsonify(user.first().serialize())
+    if user is not None and User.check_password(user.password, password):
         login_user(user, remember=request.form["rememberme"])
         # TODO: Redirect to the main page logged in
         return "Very good, you're in!"
@@ -146,11 +151,23 @@ def logout():
 
 
 """
+! Creates or retrieves User's networks
+* OvidioSantoro - 2022-02-24
+"""
+@app.route("/networks", methods=["GET", "POST"])
+def networks(request):
+    if request.method == "GET":
+        networks = Network.query.filter_by(owner=current_user.id)
+    else:
+        pass
+
+
+"""
 ! Registers a User into the database
 * OvidioSantoro - 2022-02-23
 """
 @app.route("/register", methods=["POST"])
-def register(request):
+def register():
 
     """ Check that every field is received """
     data = request.form
@@ -159,7 +176,7 @@ def register(request):
         email = data["email"]
         password = data["password"]
         confirmation = data["confirmation"]
-        college = data["college"]
+        college = data["college"] # This is used to generate the list of faculties
         faculty = data["faculty"]
         classes = data.getlist("classes")
     except: 
@@ -172,17 +189,18 @@ def register(request):
     
 
     """ Check that the unique properties are not already taken """
-    if User.query.filter_by(username=username):
+    if User.query.filter_by(username=username).count() != 0:
         return {"success": False,
-                "msg": "Username already in use"}, 400
+                "msg": f"Username {username} already in use"}, 400
 
-    if User.query.filter_by(email=email):
+    if User.query.filter_by(email=email).count() != 0:
         return {"success": False,
-                "msg": "Email already in registered"}, 400
+                "msg": f"Email {email} already in registered"}, 400
 
+    # return jsonify(classes) 
 
     """ Register the user into the database """
-    User.register(username, email, password, college, faculty, classes)
+    User.register(username, email, password, faculty, classes)
 
     # TODO: Add an actual response
     # TODO: Ideally, auto-perform a login for the newly created user
@@ -194,7 +212,7 @@ def register(request):
 * OvidioSantoro - 2022-02-24
 """
 @app.route("/user/<int:userId>", methods=["GET"])
-def getUser(request):
+def userProfile(request):
     userId = request.args.get("userId")
     user = User.query.get(userId)
 

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+    <h2>CURRENT USER:</h2>
+    <h4>Anonymous: {{ user.is_anonymous }}</h4>
+    {% if user.is_anonymous == false %}
+        <h4>{{ user.get_id }}</h4>
+    {% endif %}
+    <hr>
+    <div style="display: flex;">
+        <h2>REGISTER USER:</h2>
+        <form action="/register" method="POST">
+            <input type="text" id="username" name="username" placeholder="Username">
+            <input type="email" id="email" name="email" placeholder="Email">
+            <input type="password" id="password" name="password" placeholder="Password">
+            <input type="password" id="confirmation" name="confirmation" placeholder="Confirm password">
+            <select name="college" id="college">
+                <option value="1">Hogwarts</option>
+                <option value="2">Durmstrang</option>
+                <option value="3">Beauxbatons</option>
+            </select>
+            <select name="faculty" id="faculty">
+                <option value="1">Gryffindor</option>
+                <option value="2">Slytherin</option>
+                <option value="3">Hufflepuff</option>
+                <option value="4">Ravenclaw</option>
+            </select>
+            <select name="classes" id="classes">
+                <option value="1">Defense Against Dark Arts</option>
+                <option value="2">Potions</option>
+                <option value="3">Divination</option>
+                <option value="4">Quidditch</option>
+            </select>
+            <select name="classes" id="classes">
+                <option value="1">Defense Against Dark Arts</option>
+                <option value="2">Potions</option>
+                <option value="3">Divination</option>
+                <option value="4">Quidditch</option>
+            </select>
+            <input type="submit">
+        </form>
+    </div>
+    <hr>
+    <div style="display: flex;">
+        <h2>LOG IN:</h2>
+        <form action="/login" method="POST">
+            <input type="text" id="username" name="username" placeholder="Username">
+            <input type="password" id="password" name="password" placeholder="Password">
+            <input type="submit">
+        </form>
+    </div>
+</body>
+
+</html>

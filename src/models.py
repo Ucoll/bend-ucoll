@@ -134,7 +134,7 @@ class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(30), unique=True, nullable=False)
     email = db.Column(db.String(60), unique=True, nullable=False)
-    password = db.Column(db.String(30), unique=False, nullable=False)
+    password = db.Column(db.String(120), nullable=False)
     registered = db.Column(db.Date, default=datetime.date.today())
     name = db.Column(db.String(30))
     surname = db.Column(db.String(30))
@@ -163,7 +163,7 @@ class User(db.Model, UserMixin):
             "username": self.username,
             "email": self.email,
             "registered": self.registered,
-            "faculties": self.faculties,
+            #"faculties": self.faculties,
             "tags": self.tags,
             "name": self.name,
             "surname": self.surname,
@@ -171,6 +171,7 @@ class User(db.Model, UserMixin):
             "biography": self.biography
         }
 
+    # TODO: Do de Update and Delete methods
 
     """
     ! Register the user into the database
@@ -178,22 +179,15 @@ class User(db.Model, UserMixin):
     ? Params: username, email, password, college, faculty, classes
     """
     # @classmethod TODO: Test if this is necessary
-    def register(cls, username, email, password, college, faculty, classes):
-
-        # Tansforms the necesary data into database indexes
-        # TODO: Probably move this to a middleware file
-        college_id = College.query.filter_by(name=college).id
-        faculty_id = Faculty.query.filter_by(name=faculty).id
-        classes_list = [Class.query.filter_by(name=_class).id for _class in classes]
+    def register(username, email, password, faculty, classes):
 
         # Creates a new User in the database
-        user = cls(
+        user = User(
             username=username, 
             email=email, 
             password=generate_password_hash(password),
-            college=college_id,
-            faculty=faculty_id,
-            classes=classes_list
+            faculties=[Faculty.query.get(faculty)],
+            classes=[Class.query.get(_class) for _class in classes]
         )
         db.session.add(user)
         db.session.commit()
@@ -222,6 +216,22 @@ class Network(db.Model):
             "name": self.name ,
             "link": self.link 
         }
+
+
+    """
+    ! Creates a Network for the User
+    * OvidioSantoro - 2022-02-24
+    ? Params: user_id, 
+    """
+    def receivedMessages(cls, owner, name, link):
+        network = cls(
+            owner=owner, 
+            name=name, 
+            link=link
+        )
+
+        db.session.add(network)
+        db.session.commit()
 
 class Tag(db.Model):
     id = db.Column(db.Integer, primary_key=True)
