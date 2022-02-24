@@ -10,10 +10,11 @@
 
 <body>
     <h2>CURRENT USER:</h2>
-    <h3>Not logged: {{ user.is_anonymous }}</h3>
     {% if user.is_authenticated %}
-        <h4>User Id: {{ user.get_id() }}</h4>
-        <h4>Username: {{ user }}</h4>
+        <h3>User Id: {{ user.get_id() }}</h3>
+        <h3>Username: {{ user }}</h3>
+    {% else %}
+        <h4>User is not logged in</h4>
     {% endif %}
     <hr>
     <div style="display: flex;">
@@ -46,7 +47,7 @@
                 <option value="3">Divination</option>
                 <option value="4">Quidditch</option>
             </select>
-            <input type="submit">
+            <input type="submit" value="Sign Up">
         </form>
     </div>
     <hr>
@@ -55,9 +56,15 @@
         <form action="/login" method="POST">
             <input type="text" id="username" name="username" placeholder="Username">
             <input type="password" id="password" name="password" placeholder="Password">
-            <input type="submit">
+            <input type="submit" value="Log In">
         </form>
     </div>
+    <hr>
+    <form action="/logout" method="POST">
+        <h2>LOG OUT</h2>
+        <input type="submit" value="Log Out">
+    </form>
+    <hr>
 </body>
 
 </html>
