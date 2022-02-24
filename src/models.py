@@ -100,10 +100,10 @@ class Message(db.Model):
     * OvidioSantoro - 2022-02-24
     ? Params: sender, receiver, content
     """
-    def newMessage(cls, sender_id, receiver_id, content):
-        message = cls(
-            sender=sender_id, 
-            receiver=receiver_id, 
+    def newMessage(sender, receiver, content):
+        message = Message(
+            sender=sender,
+            receiver=receiver, 
             content=content,
         )
         db.session.add(message)

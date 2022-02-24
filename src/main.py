@@ -100,7 +100,7 @@ def sentMessages():
 """
 @app.route("/message", methods=["POST"])
 @login_required
-def message(request):
+def message():
     """ Check that every field is received """
     try:
         receiver = request.form["receiver"]
@@ -110,7 +110,8 @@ def message(request):
                 "msg": "Unable to send message"},
     
     # Creates the new message
-    Message.newMessage(current_user.id, receiver, content)
+    Message.newMessage(current_user.get_id(), receiver, content)
+    return "Message sent"
 
 
 """
