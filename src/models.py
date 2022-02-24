@@ -95,6 +95,41 @@ class Message(db.Model):
             "content": self.content,
         }
 
+    """
+    ! Creates a new message
+    * OvidioSantoro - 2022-02-24
+    ? Params: sender, receiver, content
+    """
+    def newMessage(cls, sender_id, receiver_id, content):
+        message = cls(
+            sender=sender_id, 
+            receiver=receiver_id, 
+            content=content,
+        )
+        db.session.add(message)
+        db.session.commit()
+
+    # TODO: Add a way for a user to remove messages ONLY FOR HIMSELF
+
+    """
+    ! Returns all messages received by the user
+    * OvidioSantoro - 2022-02-24
+    ? Params: user_id
+    """
+    def sentMessages(cls, user_id):
+        messages = Message.query.filter_by(receiver=user_id)
+        return messages
+
+    """
+    ! Returns all messages sent by the user
+    * OvidioSantoro - 2022-02-24
+    ? Params: user_id
+    """
+    def receivedMessages(cls, user_id):
+        messages = Message.query.filter_by(sender=user_id)
+        return messages
+
+
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(30), unique=True, nullable=False)
@@ -139,7 +174,7 @@ class User(db.Model, UserMixin):
 
     """
     ! Register the user into the database
-    * OvidioSantoro
+    * OvidioSantoro - 2022-02-23
     ? Params: username, email, password, college, faculty, classes
     """
     # @classmethod TODO: Test if this is necessary

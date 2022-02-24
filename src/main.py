@@ -48,7 +48,7 @@ def load_user(user_id):
 
 
 """
-! Route to register a new user into the database
+! TODO THESE ROUTES
 * OvidioSantoro - 2022-02-23
 """
 @app.route("/")
@@ -63,6 +63,50 @@ def handle_hello():
     }
 
     return jsonify(response_body), 200
+
+@login_manager.unauthorized_handler
+def unauthorized():
+    # TODO: Return an actual unauthorized handler
+    return "YOU NEED TO BE LOGGED IN"
+
+
+"""
+! Gets the current user's received messages
+* OvidioSantoro - 2022-02-24
+"""
+@app.route("/inbox", methods=["GET"])
+@login_required
+def receivedMessages():
+    return Message.receivedMessages(current_user.id)
+
+
+"""
+! Gets the current user's sent messages
+* OvidioSantoro - 2022-02-24
+"""
+@app.route("/inbox/sent", methods=["GET"])
+@login_required
+def sentMessages():
+    return "Message.sentMessages(current_user.id)"
+
+
+"""
+! Sends a message to another user
+* OvidioSantoro - 2022-02-24
+"""
+@app.route("/message", methods=["POST"])
+@login_required
+def message(request):
+    """ Check that every field is received """
+    try:
+        receiver = request.form["receiver"]
+        content = request.form["content"]
+    except: 
+        return {"success": False,
+                "msg": "Unable to send message"},
+    
+    # Creates the new message
+    Message.newMessage(current_user.id, receiver, content)
 
 
 """
@@ -139,9 +183,23 @@ def register(request):
 
     """ Register the user into the database """
     User.register(username, email, password, college, faculty, classes)
+
     # TODO: Add an actual response
     # TODO: Ideally, auto-perform a login for the newly created user
     return jsonify("USER REGISTERED")
+
+
+"""
+! Retrieves the selected user's profile
+* OvidioSantoro - 2022-02-24
+"""
+@app.route("/user/<int:userId>", methods=["GET"])
+def getUser(request):
+    userId = request.args.get("userId")
+    user = User.query.get(userId)
+
+    return user
+
 
 # this only runs if `$ python src/main.py` is executed
 if __name__ == '__main__':
