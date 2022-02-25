@@ -61,6 +61,7 @@ def test():
     return render_template(
         "test.html", 
         user=current_user,
+        users=User.query.all(),
         colleges=College.query.all(),
         faculties=Faculty.query.all(),
         classes=Class.query.all()
@@ -122,7 +123,7 @@ def coll():
                     "msg": "Unable to create Coll"}, 400
     
         # If all fields are filled, save the Coll
-        if title != "" and content != "" and _class != "" and type != "":
+        if title != "" or content != "" or _class != "" or type != "":
             Coll.newColl(
                 current_user.get_id(), 
                 title,
@@ -140,10 +141,10 @@ def coll():
 ! Shows a Coll in full-page version
 * OvidioSantoro - 2022-02-25
 """
-# @app.route("/coll/<int:coll_id>", methods=["GET"])
-# #@login_required
-# def coll_view():
-#     pass #TODO: Do this & Update method.
+@app.route("/coll/<int:coll_id>", methods=["GET"])
+#@login_required
+def coll_view():
+    pass #TODO: Do this & Update method.
 
 
 """
@@ -259,7 +260,7 @@ def register():
         email = data["email"]
         password = data["password"]
         confirmation = data["confirmation"]
-        college = data["college"] # This is used to generate the list of faculties
+        #college = data["college"] # This is used to generate the list of faculties
         faculty = data["faculty"]
         classes = data.getlist("classes")
     except: 

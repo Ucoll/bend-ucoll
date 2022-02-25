@@ -289,7 +289,7 @@ class Class(db.Model):
     colls = db.relationship("Coll", back_populates="_class")
 
     def __repr__(self):
-        return f"{self.name} in {self.faculty}"
+        return f"{self.name} ({self.faculty})"
 
     def serialize(self):
         return{

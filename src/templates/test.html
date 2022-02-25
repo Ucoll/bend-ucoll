@@ -76,8 +76,9 @@
     <form action="/message" method="POST">
         <input type="text" id="content" name="content" placeholder="content">
         <select name="receiver" id="receiver">
-            <option value="3">HarryPotter</option>
-            <option value="6">RonWeasley</option>
+            {% for user in users %}
+            <option value={{ user.id }}>{{ user.username }}</option>
+            {% endfor %}
         </select>
         <input type="submit" value="Send Message">
     </form>
