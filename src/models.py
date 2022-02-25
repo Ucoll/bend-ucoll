@@ -339,8 +339,10 @@ class Coll(db.Model):
     def serialize(self):
         return{
             "id": self.id,
+            "sender": User.query.get(self.sender_id).username,
             "title": self.title,
-            "class": self._class
+            "class": Class.query.get(self.class_id).name,
+            "content": self.content
         }
 
     """
@@ -348,12 +350,12 @@ class Coll(db.Model):
     * OvidioSantoro - 2022-02-25
     ? Params: user_id, 
     """
-    def newColl(title, content, sender, _class, type):
+    def newColl(sender, title, content, _class, type):
         coll = Coll(
-            sender=User.query.get(sender),
+            sender_id=sender,
             title=title, 
             content=content, 
-            _class=Class.query.get(_class),
+            class_id=_class,
             type=type
         )
 

@@ -9,7 +9,7 @@
 </head>
 
 <body>
-    <h2 style="color: blue;">CURRENT USER:</h2">
+    <h2 style="color: blue;">CURRENT USER:</h2>
     {% if user.is_authenticated %}
     <h3 style="color: green;">User Id: {{ user.get_id() }}</h3>
     <h3 style="color: green;">Username: {{ user }}</h3>
@@ -18,7 +18,7 @@
     {% endif %}
     <hr>
     <div style="display: flex;">
-        <h2 style="color: blue;">REGISTER USER:</h2">
+        <h2 style="color: blue;">REGISTER USER:</h2>
         <form action="/register" method="POST">
             <input type="text" id="username" name="username" placeholder="Username">
             <input type="email" id="email" name="email" placeholder="Email">
@@ -49,7 +49,7 @@
     </div>
     <hr>
     <div style="display: flex;">
-        <h2 style="color: blue;">LOG IN:</h2">
+        <h2 style="color: blue;">LOG IN:</h2>
         <form action="/login" method="POST">
             <input type="text" id="username" name="username" placeholder="Username">
             <input type="password" id="password" name="password" placeholder="Password">
@@ -58,21 +58,21 @@
     </div>
     <hr>
     <form action="/logout" method="POST">
-        <h2 style="color: blue;">LOG OUT</h2">
+        <h2 style="color: blue;">LOG OUT</h2>
         <input type="submit" value="Log Out">
     </form>
     <hr>
-    <h2 style="color: blue;">RECEIVED MESSAGES</h2">
+    <h2 style="color: blue;">RECEIVED MESSAGES</h2>
     <form action="/inbox">
         <input type="submit" value="Inbox">
     </form>
     <hr>
-    <h2 style="color: blue;">SENT MESSAGES</h2">
+    <h2 style="color: blue;">SENT MESSAGES</h2>
     <form action="/inbox/sent">
         <input type="submit" value="Sent">
     </form>
     <hr>
-    <h2 style="color: blue;">CREATE A NEW MESSAGE:</h2">
+    <h2 style="color: blue;">CREATE A NEW MESSAGE:</h2>
     <form action="/message" method="POST">
         <input type="text" id="content" name="content" placeholder="content">
         <select name="receiver" id="receiver">
@@ -83,33 +83,33 @@
     </form>
     </div>
     <hr>
-    <h2 style="color: blue;">GET COLLEGES LIST</h2">
+    <h2 style="color: blue;">GET COLLEGES LIST</h2>
     <form action="/colleges" method="GET">
         <input type="submit" value="Colleges">
     </form>
     <hr>
-    <h2 style="color: blue;">GET FACULTIES LIST</h2">
+    <h2 style="color: blue;">GET FACULTIES LIST</h2>
     <form action="/faculties" method="GET">
         <input type="submit" value="Faculties">
     </form>
     <hr>
-    <h2 style="color: blue;">GET CLASSES LISTS</h2">
+    <h2 style="color: blue;">GET CLASSES LISTS</h2>
     <form action="/classes" method="GET">
         <input type="submit" value="Classes">
     </form>
     <hr>
-    <h2 style="color: blue;">GET FACULTIES IN COLLEGE</h2">
+    <h2 style="color: blue;">GET FACULTIES IN COLLEGE</h2>
     <form action="/colleges/<int:college>/classes" method="GET">
         <input type="submit" value="Faculties">
     </form>
     <hr>
-    <h2 style="color: blue;">GET CLASSES IN FACULTY</h2">
+    <h2 style="color: blue;">GET CLASSES IN FACULTY</h2>
     <form action="/faculties/<int:faculty>/classes" method="GET">
         <input type="submit" value="Classes">
     </form>
     <hr>
     <div style="display: flex;">
-        <h2 style="color: blue;">NEW COLL:</h2">
+        <h2 style="color: blue;">NEW COLL:</h2>
         <form action="/coll" method="POST">
             <input type="text" id="title" name="title" placeholder="Title">
             <input type="text" id="content" name="content" placeholder="Content">
@@ -129,7 +129,7 @@
     <hr>
     <h2 style="color: blue;">GET ALL COLLS</h2>
     <form action="/coll" method="GET">
-        <input type="submit" value="Classes">
+        <input type="submit" value="Colls">
     </form>
     <hr>
 </body>

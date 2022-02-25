@@ -115,31 +115,35 @@ def coll():
         try:
             title = request.form["title"]
             content = request.form["content"]
-            _class = request.form["class"]
+            _class = request.form["classes"]
             type = request.form["type"]
         except: 
             return {"success": False,
-                    "msg": "Unable to create Coll"},
+                    "msg": "Unable to create Coll"}, 400
     
-        # Creates the new message
-        Message.newMessage(
-            current_user.get_id(), 
-            title,
-            content,
-            _class,
-            type
-        )
-        return "Message sent"
+        # If all fields are filled, save the Coll
+        if title != "" and content != "" and _class != "" and type != "":
+            Coll.newColl(
+                current_user.get_id(), 
+                title,
+                content,
+                _class,
+                type
+            )
+            return "Coll created"
+        else:
+            return {"success": False,
+                    "msg": "Unable to create Coll"}, 400
 
 
 """
 ! Shows a Coll in full-page version
 * OvidioSantoro - 2022-02-25
 """
-@app.route("/coll/<int:coll_id>", methods=["GET"])
-#@login_required
-def coll_view():
-    pass #TODO: Do this & Update method.
+# @app.route("/coll/<int:coll_id>", methods=["GET"])
+# #@login_required
+# def coll_view():
+#     pass #TODO: Do this & Update method.
 
 
 """
@@ -185,7 +189,7 @@ def message():
         content = request.form["content"]
     except: 
         return {"success": False,
-                "msg": "Unable to send message"},
+                "msg": "Unable to send message"}, 400
     
     # Creates the new message
     Message.newMessage(current_user.get_id(), receiver, content)
