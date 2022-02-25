@@ -221,10 +221,10 @@ class Network(db.Model):
     """
     ! Creates a Network for the User
     * OvidioSantoro - 2022-02-24
-    ? Params: user_id, 
+    ? Params: owner, name, link 
     """
-    def receivedMessages(cls, owner, name, link):
-        network = cls(
+    def receivedMessages(owner, name, link):
+        network = Network(
             owner=owner, 
             name=name, 
             link=link
@@ -270,13 +270,13 @@ class Faculty(db.Model):
     classes = db.relationship("Class", back_populates="faculty")
 
     def __repr__(self):
-        return f"{self.name} from {self.college}"
+        return f"{self.name} ({self.college})"
 
     def serialize(self):
         return{
             "id": self.id,
             "name": self.name,
-            "college": self.college_id
+            "college": College.query.get(self.college_id).name
         }
 
 class Class(db.Model):
@@ -295,7 +295,7 @@ class Class(db.Model):
         return{
             "id": self.id,
             "name": self.name,
-            "faculty": self.faculty_id
+            "faculty": Faculty.query.get(self.faculty_id).name
         }
 
 class File(db.Model):
@@ -342,6 +342,23 @@ class Coll(db.Model):
             "title": self.title,
             "class": self._class
         }
+
+    """
+    ! Creates a new Coll
+    * OvidioSantoro - 2022-02-25
+    ? Params: user_id, 
+    """
+    def newColl(title, content, sender, _class, type):
+        coll = Coll(
+            sender=User.query.get(sender),
+            title=title, 
+            content=content, 
+            _class=Class.query.get(_class),
+            type=type
+        )
+
+        db.session.add(coll)
+        db.session.commit()
 
 class Comment(db.Model):
     id = db.Column(db.Integer, primary_key=True)

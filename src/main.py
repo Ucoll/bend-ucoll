@@ -23,6 +23,7 @@ CORS(app)
 setup_admin(app)
 
 """ Configures the Login Manager & secret key for sessions """
+# TODO: Change the Flask_login for a custom JWT Token generator and verifier
 login_manager = LoginManager(app)
 login_manager.init_app(app)
 # TODO: Redirect user to the Log In page
@@ -57,7 +58,13 @@ def sitemap():
 
 @app.route("/test")
 def test():
-    return render_template("test.html", user=current_user)
+    return render_template(
+        "test.html", 
+        user=current_user,
+        colleges=College.query.all(),
+        faculties=Faculty.query.all(),
+        classes=Class.query.all()
+    )
 
 @app.route('/user', methods=['GET'])
 def handle_hello():
@@ -72,6 +79,77 @@ def handle_hello():
 def unauthorized():
     # TODO: Return an actual unauthorized handler
     return "YOU NEED TO BE LOGGED IN"
+
+
+"""
+! Gets the list of all Colleges
+* OvidioSantoro - 2022-02-25
+"""
+@app.route("/colleges", methods=["GET"])
+#@login_required
+def colleges():
+    return jsonify(list(map(lambda x: x.serialize(), College.query.all())))
+
+
+"""
+! Gets the list of all Classes
+* OvidioSantoro - 2022-02-25
+"""
+@app.route("/classes", methods=["GET"])
+#@login_required
+def classes():
+    return jsonify(list(map(lambda x: x.serialize(), Class.query.all())))
+
+
+"""
+! Shows all the Colls
+* OvidioSantoro - 2022-02-25
+"""
+@app.route("/coll", methods=["GET", "POST"])
+#@login_required
+def coll():
+    if request.method == "GET":
+        return jsonify(list(map(lambda x: x.serialize(), Coll.query.all())))
+    else:
+        """ Check that every field is received """
+        try:
+            title = request.form["title"]
+            content = request.form["content"]
+            _class = request.form["class"]
+            type = request.form["type"]
+        except: 
+            return {"success": False,
+                    "msg": "Unable to create Coll"},
+    
+        # Creates the new message
+        Message.newMessage(
+            current_user.get_id(), 
+            title,
+            content,
+            _class,
+            type
+        )
+        return "Message sent"
+
+
+"""
+! Shows a Coll in full-page version
+* OvidioSantoro - 2022-02-25
+"""
+@app.route("/coll/<int:coll_id>", methods=["GET"])
+#@login_required
+def coll_view():
+    pass #TODO: Do this & Update method.
+
+
+"""
+! Gets the list of all Faculties
+* OvidioSantoro - 2022-02-25
+"""
+@app.route("/faculties", methods=["GET"])
+#@login_required
+def faculties():
+    return jsonify(list(map(lambda x: x.serialize(), Faculty.query.all())))
 
 
 """
