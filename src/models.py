@@ -34,8 +34,10 @@ FavoriteColls = db.Table('favorite_colls',
     db.Column('coll_id', db.ForeignKey("coll.id"), primary_key=True)
 )
 
+# ----------------------------------------------------------------------------------------------
+
 """
-! Asociation object for the like tables
+! Asociation objects for the like tables
 * OvidioSantoro - 2022-02-22
 ? Needed to handle the difference between like & dislike in one table
 ? in this case we use a Boolean (True = Like, False = Dislike)
@@ -74,8 +76,10 @@ class LikedColls(db.Model):
             "isLike": self.is_like,
         }
 
+# ----------------------------------------------------------------------------------------------
+
 """
-! Data Models
+! Message Model & methods
 * OvidioSantoro - 2022-02-21
 """
 class Message(db.Model):
@@ -95,11 +99,8 @@ class Message(db.Model):
             "content": self.content
         }
 
-    """
-    ! Creates a new message
-    * OvidioSantoro - 2022-02-24
-    ? Params: sender, receiver, content
-    """
+
+    # Creates a new message
     def newMessage(sender, receiver, content):
         message = Message(
             sender=sender,
@@ -112,28 +113,25 @@ class Message(db.Model):
     # TODO: Add a way for a user to remove messages ONLY FOR HIMSELF
     """
     TODO: Decide whether a user should be able to edit or remove messages (à la WhatsApp)
-    or if they should be "permanent" (like an email).
+        or if they should be "permanent" (like an email).
     """
 
-    """
-    ! Returns all messages received by the user
-    * OvidioSantoro - 2022-02-24
-    ? Params: user_id
-    """
+    # Returns all messages received by the user
     def sentMessages(user_id):
         messages = Message.query.filter_by(sender=user_id)
         return messages
 
-    """
-    ! Returns all messages sent by the user
-    * OvidioSantoro - 2022-02-24
-    ? Params: user_id
-    """
+    # Returns all messages sent by the user
     def receivedMessages(user_id):
         messages = Message.query.filter_by(receiver=user_id)
         return messages
 
+# ----------------------------------------------------------------------------------------------
 
+"""
+! User Model & methods
+* OvidioSantoro - 2022-02-23
+"""
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(30), unique=True, nullable=False)
@@ -175,22 +173,13 @@ class User(db.Model, UserMixin):
             "biography": self.biography
         }
 
-    """
-    ! Checks the hashed password
-    * OvidioSantoro - 2022-02-23
-    """
+
+    # Checks the hashed password
     def check_password(userPassword, password):
         return check_password_hash(userPassword, password)
 
-    """
-    ! Register the user into the database
-    * OvidioSantoro - 2022-02-23
-    ? Params: username, email, password, college, faculty, classes
-    """
-    # @classmethod TODO: Test if this is necessary
+    # Register the user into the database
     def register(username, email, password, faculty, classes):
-
-        # Creates a new User in the database
         user = User(
             username = username, 
             email = email, 
@@ -201,33 +190,28 @@ class User(db.Model, UserMixin):
         db.session.add(user)
         db.session.commit()
 
-    """
-    ! Updates the user's data in the database
-    * OvidioSantoro - 2022-03-03
-    ? Params: username, password, college, faculty, classes
-    """
-    # @classmethod TODO: Test if this is necessary
+    # Updates the user's data in the database
     def update(id, username, password, faculty, classes):
-
-        # Updates the user
         user = User.query.get(id)
         user.username = username
         user.password = generate_password_hash(password)
         user.faculties = [Faculty.query.get(faculty)]
         user.classes = [Class.query.get(_class) for _class in classes]
-      
+
         db.session.commit()
 
-    """
-    ! Deletes an user from the database
-    * OvidioSantoro - 2022-03-03
-    """
+    # Deletes an user from the database
     def delete(id):
         user = User.query.get(id)
         db.session.delete(user)
         db.session.commit()
         
+# ----------------------------------------------------------------------------------------------
 
+"""
+! Network Model & methods
+* OvidioSantoro - 2022-02-23
+"""
 class Network(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     owner = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
@@ -246,29 +230,18 @@ class Network(db.Model):
         }
 
 
-    """
-    ! Creates a Network for the User
-    * OvidioSantoro - 2022-02-24
-    ? Params: owner, name, link 
-    """
+    # Creates a Network for the User
     def create(owner, name, link):
         network = Network(
             owner=owner, 
             name=name, 
             link=link
         )
-
         db.session.add(network)
         db.session.commit()
 
-    """
-    ! Updates user's network the database
-    * OvidioSantoro - 2022-03-03
-    ? Params: username, password, college, faculty, classes
-    """
+    # Updates user's network the database
     def update(user_id, username, password, faculty, classes):
-
-        # Updates the user
         user = User.query.get(user_id)
         user.username = username
         user.password = generate_password_hash(password)
@@ -277,16 +250,18 @@ class Network(db.Model):
       
         db.session.commit()
 
-    """
-    ! Deletes a network from the database
-    * OvidioSantoro - 2022-03-03
-    """
+    # Deletes a network from the database
     def delete(id):
         network = Network.query.get(id)
         db.session.delete(network)
         db.session.commit()
 
+# ----------------------------------------------------------------------------------------------
 
+"""
+! Tag Model & methods
+* OvidioSantoro - 2022-02-23
+"""
 class Tag(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(20))
@@ -301,6 +276,13 @@ class Tag(db.Model):
             "name": self.name
         }
 
+
+# ----------------------------------------------------------------------------------------------
+
+"""
+! College Model & methods
+* OvidioSantoro - 2022-02-23
+"""
 class College(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(60), nullable=False)
@@ -315,6 +297,12 @@ class College(db.Model):
             "name": self.name
         }
 
+# ----------------------------------------------------------------------------------------------
+
+"""
+! Faculty Model & methods
+* OvidioSantoro - 2022-02-23
+"""
 class Faculty(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(60), nullable=False)
@@ -333,6 +321,12 @@ class Faculty(db.Model):
             "college": College.query.get(self.college_id).name
         }
 
+# ----------------------------------------------------------------------------------------------
+
+"""
+! Class Model & methods
+* OvidioSantoro - 2022-02-23
+"""
 class Class(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(60), nullable=False)
@@ -351,7 +345,13 @@ class Class(db.Model):
             "name": self.name,
             "faculty": Faculty.query.get(self.faculty_id).name
         }
+        
+# ----------------------------------------------------------------------------------------------
 
+"""
+! File Model & methods
+* OvidioSantoro - 2022-02-23
+"""
 class File(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(60), nullable=False)
@@ -374,6 +374,12 @@ class File(db.Model):
             "class": self._class
         }
 
+# ----------------------------------------------------------------------------------------------        
+
+"""
+! Coll Model & methods
+* OvidioSantoro - 2022-02-23
+"""
 class Coll(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(60), nullable=False)
@@ -399,11 +405,8 @@ class Coll(db.Model):
             "content": self.content
         }
 
-    """
-    ! Creates a new Coll
-    * OvidioSantoro - 2022-02-25
-    ? Params: user_id, 
-    """
+
+    # Creates a new Coll
     def newColl(sender, title, content, _class, type):
         coll = Coll(
             sender_id=sender,
@@ -416,6 +419,12 @@ class Coll(db.Model):
         db.session.add(coll)
         db.session.commit()
 
+# ----------------------------------------------------------------------------------------------
+
+"""
+! Comment Model & methods
+* OvidioSantoro - 2022-02-23
+"""
 class Comment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     content = db.Column(db.Text, nullable=False)
