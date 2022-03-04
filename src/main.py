@@ -60,15 +60,28 @@ def sitemap():
 
 @app.route("/test")
 def test():
-    return render_template(
-        "test.html", 
-        user=current_user,
-        users=User.query.all(),
-        colleges=College.query.all(),
-        faculties=Faculty.query.all(),
-        classes=Class.query.all(),
-        networks=Network.query.filter_by(owner=current_user.id)
-    )
+    if not current_user.is_authenticated:
+        return render_template(
+            "test.html", 
+            user = current_user,
+            users = User.query.all(),
+            colleges = College.query.all(),
+            faculties = Faculty.query.all(),
+            classes=Class.query.all(),
+            networks = Network.query.all()
+        )
+
+    else:
+        return render_template(
+            "test.html", 
+            user = current_user,
+            users = User.query.all(),
+            colleges = College.query.all(),
+            faculties = Faculty.query.all(),
+            classes=Class.query.all(),
+            networks = Network.query.filter_by(owner=current_user.id) if not current_user.id else Network.query.all()
+        )
+
 
 @app.route('/user', methods=['GET'])
 def handle_hello():

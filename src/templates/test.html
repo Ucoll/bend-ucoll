@@ -191,7 +191,7 @@
     </form>
     <hr>
     <h2 style="color: blue;">DELETE NETWORK:</h2>
-    <form action="/me/delete" method="POST">
+    <form action="/networks/<int:networkId>/delete" method="POST">
         <select name="network" id="network">
             {% for network in networks %}
             <option value={{ network.id }}>{{ network.name }}</option>
