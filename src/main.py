@@ -22,6 +22,8 @@ db.init_app(app)
 CORS(app)
 setup_admin(app)
 
+# TODO: Segment the code into different files for readability
+
 """ Configures the Login Manager & secret key for sessions """
 # TODO: Change the Flask_login for a custom JWT Token generator and verifier
 login_manager = LoginManager(app)
@@ -64,7 +66,8 @@ def test():
         users=User.query.all(),
         colleges=College.query.all(),
         faculties=Faculty.query.all(),
-        classes=Class.query.all()
+        classes=Class.query.all(),
+        networks=Network.query.filter_by(owner=current_user.id)
     )
 
 @app.route('/user', methods=['GET'])
@@ -235,15 +238,105 @@ def logout():
 
 
 """
+! Gets or Updates the current User's profile
+* OvidioSantoro - 2022-03-03
+"""
+@app.route("/me", methods=["GET", "POST"])
+def me():
+    user = User.query.get(current_user.id)
+    if request.method == "GET":
+        return jsonify(user.serialize())
+        
+    else:
+        """ Check that every field is received """
+        data = request.form
+        try:
+            username = data["username"]
+            old_password = data["old_password"]
+            password = data["password"]
+            confirmation = data["confirmation"]
+            #college = data["college"] # This is used to generate the list of faculties
+            faculty = data["faculty"]
+            classes = data.getlist("classes")
+        except: 
+            return {"success": False,
+                    "msg": "Unable to retrieve register data"}, 400
+
+        if not User.check_password(user.password, old_password):
+            return {"success": False,
+                    "msg": "Old password is not correct"}, 403
+
+        if password != confirmation:
+            return {"success": False,
+                    "msg": "Password confirmation incorrect"}, 400
+    
+
+        """ Check that the unique properties are not already taken """
+        if (username != user.username) and User.query.filter_by(username=username).count() != 0:
+            return {"success": False,
+                    "msg": f"Username {username} already in use"}, 403
+
+
+        """ Register the user into the database """
+        User.update(user.id, username, password, faculty, classes)
+
+        # TODO: Add an actual response
+        # TODO: Ideally, auto-perform a login for the newly created user
+        return jsonify("USER UPDATED")
+
+
+"""
+! Deletes the current User's profile
+* OvidioSantoro - 2022-03-03
+"""
+@app.route("/me/delete", methods=["POST"])
+def me_delete():
+    User.delete(current_user.id)
+    return jsonify("Goodbye, you will be missed :(")
+
+
+"""
 ! Creates or retrieves User's networks
 * OvidioSantoro - 2022-02-24
 """
 @app.route("/networks", methods=["GET", "POST"])
-def networks(request):
+def networks():
     if request.method == "GET":
         networks = Network.query.filter_by(owner=current_user.id)
+        return jsonify(list(map(lambda x: x.serialize(), networks)))
+
     else:
-        pass
+        data = request.form
+        try:
+            name = data["name"]
+            link = data["link"]
+        except: 
+            return {"success": False,
+                    "msg": "Unable to create Network"}, 400
+    
+    Network.create(current_user.id, name, link)
+    return jsonify("Network Created")
+        
+
+
+"""
+! Updates User's network
+* OvidioSantoro - 2022-03-03
+"""
+@app.route("/networks/<int:networkId>", methods=["POST"])
+def network_update():
+    network_id = request.args.get("networkId")
+    networks = Network.query.filter_by(owner=current_user.id)
+
+
+"""
+!  Deletes User's network
+* OvidioSantoro - 2022-03-03
+"""
+@app.route("/networks/<int:networkId>/delete", methods=["POST"])
+def network_delete():
+    network_id = request.args.get("networkId")
+    networks = Network.query.filter_by(owner=current_user.id)
 
 
 """

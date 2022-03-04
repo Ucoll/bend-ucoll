@@ -110,6 +110,10 @@ class Message(db.Model):
         db.session.commit()
 
     # TODO: Add a way for a user to remove messages ONLY FOR HIMSELF
+    """
+    TODO: Decide whether a user should be able to edit or remove messages (à la WhatsApp)
+    or if they should be "permanent" (like an email).
+    """
 
     """
     ! Returns all messages received by the user
@@ -171,7 +175,12 @@ class User(db.Model, UserMixin):
             "biography": self.biography
         }
 
-    # TODO: Do de Update and Delete methods
+    """
+    ! Checks the hashed password
+    * OvidioSantoro - 2022-02-23
+    """
+    def check_password(userPassword, password):
+        return check_password_hash(userPassword, password)
 
     """
     ! Register the user into the database
@@ -183,22 +192,41 @@ class User(db.Model, UserMixin):
 
         # Creates a new User in the database
         user = User(
-            username=username, 
-            email=email, 
-            password=generate_password_hash(password),
-            faculties=[Faculty.query.get(faculty)],
-            classes=[Class.query.get(_class) for _class in classes]
+            username = username, 
+            email = email, 
+            password = generate_password_hash(password),
+            faculties = [Faculty.query.get(faculty)],
+            classes = [Class.query.get(_class) for _class in classes]
         )
         db.session.add(user)
         db.session.commit()
 
     """
-    ! Checks the hashed password
-    * OvidioSantoro - 2022-02-23
+    ! Updates the user's data in the database
+    * OvidioSantoro - 2022-03-03
+    ? Params: username, password, college, faculty, classes
     """
-    def check_password(userPassword, password):
-        return check_password_hash(userPassword, password)
+    # @classmethod TODO: Test if this is necessary
+    def update(id, username, password, faculty, classes):
 
+        # Updates the user
+        user = User.query.get(id)
+        user.username = username
+        user.password = generate_password_hash(password)
+        user.faculties = [Faculty.query.get(faculty)]
+        user.classes = [Class.query.get(_class) for _class in classes]
+      
+        db.session.commit()
+
+    """
+    ! Deletes an user from the database
+    * OvidioSantoro - 2022-03-03
+    """
+    def delete(id):
+        user = User.query.get(id)
+        db.session.delete(user)
+        db.session.commit()
+        
 
 class Network(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -223,7 +251,7 @@ class Network(db.Model):
     * OvidioSantoro - 2022-02-24
     ? Params: owner, name, link 
     """
-    def receivedMessages(owner, name, link):
+    def create(owner, name, link):
         network = Network(
             owner=owner, 
             name=name, 
@@ -232,6 +260,32 @@ class Network(db.Model):
 
         db.session.add(network)
         db.session.commit()
+
+    """
+    ! Updates user's network the database
+    * OvidioSantoro - 2022-03-03
+    ? Params: username, password, college, faculty, classes
+    """
+    def update(user_id, username, password, faculty, classes):
+
+        # Updates the user
+        user = User.query.get(user_id)
+        user.username = username
+        user.password = generate_password_hash(password)
+        user.faculties = [Faculty.query.get(faculty)]
+        user.classes = [Class.query.get(_class) for _class in classes]
+      
+        db.session.commit()
+
+    """
+    ! Deletes a network from the database
+    * OvidioSantoro - 2022-03-03
+    """
+    def delete(id):
+        network = Network.query.get(id)
+        db.session.delete(network)
+        db.session.commit()
+
 
 class Tag(db.Model):
     id = db.Column(db.Integer, primary_key=True)

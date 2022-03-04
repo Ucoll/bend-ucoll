@@ -17,6 +17,51 @@
     <h4 style="color: red;">User is not logged in</h4>
     {% endif %}
     <hr>
+    <h2 style="color: blue;">GET YOUR PROFILE:</h2>
+    <form action="/me" method="GET">
+        <input type="submit" value="My Profile">
+    </form>
+    <hr>
+    <h2 style="color: blue;">DELETE USER:</h2>
+    <form action="/me/delete" method="POST">
+        <input type="submit" value="Delete User">
+    </form>
+    <hr>
+    <div style="display: flex;">
+        <h2 style="color: blue;">UPDATE USER:</h2>
+        {% if user.is_authenticated %}
+        <form action="/me" method="POST">
+            <input type="text" id="username" name="username" placeholder="Username" value="{{user.username}}">
+            <input type="password" id="old_password" name="old_password" placeholder="Old Password">
+            <input type="password" id="password" name="password" placeholder="Password">
+            <input type="password" id="confirmation" name="confirmation" placeholder="Confirm password">
+            <select name="college" id="college" selected="{{user.college}}">
+                {% for college in colleges %}
+                <option value={{ college.id }}>{{ college.name }}</option>
+                {% endfor %}
+            </select>
+            <select name="faculty" id="faculty" selected="{{user.faculties[0].id}}">
+                {% for faculty in faculties if faculty.college_id == 1 %}
+                <option value={{ faculty.id }}>{{ faculty.name }}</option>
+                {% endfor %}
+            </select>
+            <select name="classes" id="classes">
+                {% for class in classes if class.faculty_id == 1 %}
+                <option value={{ class.id }}>{{ class.name }}</option>
+                {% endfor %}
+            </select>
+            <select name="classes" id="classes">
+                {% for class in classes if class.faculty_id == 1 %}
+                <option value={{ class.id }}>{{ class.name }}</option>
+                {% endfor %}
+            </select>
+            <input type="submit" value="Update">
+        </form>
+        {% else %}
+        Cannot update if you're not logged in, silly
+        {% endif %}
+    </div>
+    <hr>
     <div style="display: flex;">
         <h2 style="color: blue;">REGISTER USER:</h2>
         <form action="/register" method="POST">
@@ -131,6 +176,27 @@
     <h2 style="color: blue;">GET ALL COLLS</h2>
     <form action="/coll" method="GET">
         <input type="submit" value="Colls">
+    </form>
+    <hr>
+    <h2 style="color: blue;">CREATE NETWORK:</h2>
+    <form action="/networks" method="POST">
+        <input type="text" id="name" name="name" placeholder="Which Network">
+        <input type="text" id="link" name="link" placeholder="Link">
+        <input type="submit" value="Create Network">
+    </form>
+    <hr>
+    <h2 style="color: blue;">GET ALL NETWORKS:</h2>
+    <form action="/networks" method="GET">
+        <input type="submit" value="Networks">
+    </form>
+    <hr>
+    <h2 style="color: blue;">DELETE NETWORK:</h2>
+    <form action="/me/delete" method="POST">
+        <select name="network" id="network">
+            {% for network in networks %}
+            <option value={{ network.id }}>{{ network.name }}</option>
+            {% endfor %}
+            <input type="submit" value="Delete Network">
     </form>
     <hr>
 </body>
