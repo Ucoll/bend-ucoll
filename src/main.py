@@ -237,18 +237,22 @@ def get_faculty(facultyId):
 #####################
 # ? FILE ENDPOINTS
 #####################
+
+# TODO: All of these endpoints
+
 # ----------------------------------------------------------------------------------------------
 #####################
 # ? HOME ENDPOINTS
 #####################
 
 """
-! Renders the Landing Page
-* OvidioSantoro - 2022-03-XX
+! Renders the home page
+* OvidioSantoro - 2022-03-05
 """
-@app.route("/")
+# TODO: When the Front is installed, check whether this should return something
+@app.route("/home")
 def sitemap():
-    return generate_sitemap(app)
+    return redirect("/colls")
 
 # ----------------------------------------------------------------------------------------------
 #####################
