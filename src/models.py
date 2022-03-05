@@ -343,8 +343,15 @@ class Class(db.Model):
         return{
             "id": self.id,
             "name": self.name,
-            "faculty": Faculty.query.get(self.faculty_id).name
+            "faculty": Faculty.query.get(self.faculty_id).name,
+            "students": [student.username for student in self.students]
         }
+
+    # Updates the Class' students
+    def update_students(id, students):
+        _class = Class.query.get(id)
+        _class.students = students
+        db.session.commit()
         
 # ----------------------------------------------------------------------------------------------
 
@@ -407,16 +414,27 @@ class Coll(db.Model):
 
 
     # Creates a new Coll
-    def newColl(sender, title, content, _class, type):
+    def create(sender, title, content, _class, type):
         coll = Coll(
-            sender_id=sender,
-            title=title, 
-            content=content, 
-            class_id=_class,
-            type=type
+            sender_id = sender,
+            title = title, 
+            content = content, 
+            class_id = _class,
+            type = type
         )
 
         db.session.add(coll)
+        db.session.commit()
+
+    # Updates a Coll
+    def update(coll, title, content):
+        coll.title = title
+        coll.content = content
+        db.session.commit()
+
+    # Deletes a Coll from the database
+    def delete(coll):
+        db.session.delete(coll)
         db.session.commit()
 
 # ----------------------------------------------------------------------------------------------

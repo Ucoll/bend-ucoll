@@ -3,7 +3,7 @@ This module takes care of starting the API Server, Loading the DB and Adding the
 """
 #from crypt import methods
 import os
-from flask import Flask, render_template, request, jsonify, url_for
+from flask import Flask, redirect, render_template, request, jsonify, url_for
 from flask_migrate import Migrate
 from flask_swagger import swagger
 from flask_cors import CORS
@@ -11,6 +11,8 @@ from flask_login import LoginManager, login_required, current_user, login_user, 
 from utils import APIException, generate_sitemap
 from admin import setup_admin
 from models import db, User, Message, Network, Tag, College, Faculty, Class, File, Coll, Comment, LikedFiles, LikedColls
+
+# ----------------------------------------------------------------------------------------------
 
 """ Initializes the database """
 app = Flask(__name__)
@@ -22,7 +24,11 @@ db.init_app(app)
 CORS(app)
 setup_admin(app)
 
-# TODO: Segment the code into different files for readability
+# ----------------------------------------------------------------------------------------------
+""" Handle/serialize errors like a JSON object"""
+@app.errorhandler(APIException)
+def handle_invalid_usage(error):
+    return jsonify(error.to_dict()), error.status_code
 
 """ Configures the Login Manager & secret key for sessions """
 # TODO: Change the Flask_login for a custom JWT Token generator and verifier
@@ -32,11 +38,7 @@ login_manager.init_app(app)
 # login_manager.login_view = "login"
 app.secret_key = "4c73578c1dade3172998bfc97d1d14801e1a27c31ced907653f694efc939d017"
 
-# Handle/serialize errors like a JSON object
-@app.errorhandler(APIException)
-def handle_invalid_usage(error):
-    return jsonify(error.to_dict()), error.status_code
-
+# ----------------------------------------------------------------------------------------------
 
 """
 ! Callback to reload the user from the ID stored in the session
@@ -49,54 +51,144 @@ def load_user(user_id):
     else:
         return None
 
-
-"""
-! TODO THESE ROUTES
-* OvidioSantoro - 2022-02-23
-"""
-@app.route("/")
-def sitemap():
-    return generate_sitemap(app)
-
-@app.route("/test")
-def test():
-    if not current_user.is_authenticated:
-        return render_template(
-            "test.html", 
-            user = current_user,
-            users = User.query.all(),
-            colleges = College.query.all(),
-            faculties = Faculty.query.all(),
-            classes=Class.query.all(),
-            networks = Network.query.all()
-        )
-
-    else:
-        return render_template(
-            "test.html", 
-            user = current_user,
-            users = User.query.all(),
-            colleges = College.query.all(),
-            faculties = Faculty.query.all(),
-            classes=Class.query.all(),
-            networks = Network.query.filter_by(owner=current_user.id) if not current_user.id else Network.query.all()
-        )
-
-
-@app.route('/user', methods=['GET'])
-def handle_hello():
-
-    response_body = {
-        "msg": "This will be the main route"
-    }
-
-    return jsonify(response_body), 200
-
 @login_manager.unauthorized_handler
 def unauthorized():
     # TODO: Return an actual unauthorized handler
     return "YOU NEED TO BE LOGGED IN"
 
+
+# ----------------------------------------------------------------------------------------------
+#####################
+# ? CLASS ENDPOINTS
+#####################
+
+"""
+! Gets the list of all Classes
+* OvidioSantoro - 2022-02-25
+"""
+@app.route("/classes", methods=["GET"])
+@login_required
+def classes():
+    return jsonify(list(map(lambda x: x.serialize(), Class.query.all())))
+
+"""
+! Gets a certain Class or add current user to it
+* OvidioSantoro - 2022-03-04
+"""
+@app.route("/classes/<int:classId>", methods=["GET", "POST"])
+@login_required
+def get_class(classId):
+    _class = Class.query.get(classId)
+    if request.method == "GET":
+        return jsonify(_class.serialize())
+    else:
+        students = [student for student in _class.students]
+        user = User.query.get(current_user.id)
+        students.append(user)
+        Class.update_students(_class.id, students)
+        return redirect(f"/classes/{classId}")
+
+"""
+! Removes current user from a Class
+* OvidioSantoro - 2022-03-04
+"""
+@app.route("/classes/<int:classId>/leave", methods=["POST"])
+@login_required
+def leave_class(classId):
+    _class = Class.query.get(classId)
+    user = User.query.get(current_user.id)
+    students = [student for student in _class.students]
+    students.remove(user)
+    Class.update_students(_class.id, students)
+    return redirect("/home")
+    
+
+# ----------------------------------------------------------------------------------------------
+#####################
+# ? COLL ENDPOINTS
+#####################
+
+"""
+! Return all the Colls or Create a new Coll
+* OvidioSantoro - 2022-02-25
+"""
+@app.route("/colls", methods=["GET", "POST"])
+@login_required
+def colls():
+    # Return all Colls
+    if request.method == "GET":
+        return jsonify(list(map(lambda x: x.serialize(), Coll.query.all())))
+    
+    # Create a new Coll
+    else:
+        """ Check that every field is received """
+        try:
+            title = request.form["title"]
+            content = request.form["content"]
+            _class = request.form["_class"]
+            type = request.form["type"]
+        except: 
+            return {"success": False,
+                    "msg": "Unable to create Coll"}, 400
+    
+        # If all fields are filled, save the Coll
+        if title != "" and content != "" and _class != "" and type != "":
+            Coll.create(
+                current_user.get_id(), 
+                title,
+                content,
+                _class,
+                type
+            )
+            return redirect("/colls")
+        else:
+            return {"success": False,
+                    "msg": "Unable to create Coll"}, 400
+
+
+"""
+! Returns the Colls of a certain Class
+* OvidioSantoro - 2022-02-25
+"""
+@app.route("/colls/class/<int:classId>", methods=["GET"])
+@login_required
+def get_class_colls(classId):
+    colls = Class.query.filter_by(class_id = classId)
+    return jsonify(list(map(lambda x: x.serialize(), colls)))
+
+"""
+! Returns a single Coll (For full-page) or edits it
+* OvidioSantoro - 2022-02-25
+"""
+@app.route("/colls/<int:collId>", methods=["GET", "POST"])
+@login_required
+def get_coll(collId):
+    coll = Coll.query.get(collId)
+    if request.method == "GET":
+        return jsonify(coll.serialize())
+    else:
+        title = request.form["title"]
+        content = request.form["content"]
+        user = User.query.get(current_user.id)
+        Coll.update(coll, title, content)
+        return redirect(f"/colls/{collId}")
+
+
+"""
+! Removes a Coll from the database
+* OvidioSantoro - 2022-03-05
+"""
+@app.route("/colls/<int:collId>/delete", methods=["POST"])
+@login_required
+def delete_coll(collId):
+    coll = Coll.query.get(collId)
+    Coll.delete(coll)
+    return redirect("/colls")
+
+# ----------------------------------------------------------------------------------------------
+#####################
+# ? COLLEGE ENDPOINTS
+#####################
 
 """
 ! Gets the list of all Colleges
@@ -107,64 +199,13 @@ def unauthorized():
 def colleges():
     return jsonify(list(map(lambda x: x.serialize(), College.query.all())))
 
+# ----------------------------------------------------------------------------------------------
+#####################
+# ? FACULTY ENDPOINTS
+#####################
 
 """
-! Gets the list of all Classes
-* OvidioSantoro - 2022-02-25
-"""
-@app.route("/classes", methods=["GET"])
-#@login_required
-def classes():
-    return jsonify(list(map(lambda x: x.serialize(), Class.query.all())))
-
-
-"""
-! Shows all the Colls
-* OvidioSantoro - 2022-02-25
-"""
-@app.route("/coll", methods=["GET", "POST"])
-#@login_required
-def coll():
-    if request.method == "GET":
-        return jsonify(list(map(lambda x: x.serialize(), Coll.query.all())))
-    else:
-        """ Check that every field is received """
-        try:
-            title = request.form["title"]
-            content = request.form["content"]
-            _class = request.form["classes"]
-            type = request.form["type"]
-        except: 
-            return {"success": False,
-                    "msg": "Unable to create Coll"}, 400
-    
-        # If all fields are filled, save the Coll
-        if title != "" or content != "" or _class != "" or type != "":
-            Coll.newColl(
-                current_user.get_id(), 
-                title,
-                content,
-                _class,
-                type
-            )
-            return "Coll created"
-        else:
-            return {"success": False,
-                    "msg": "Unable to create Coll"}, 400
-
-
-"""
-! Shows a Coll in full-page version
-* OvidioSantoro - 2022-02-25
-"""
-@app.route("/coll/<int:coll_id>", methods=["GET"])
-#@login_required
-def coll_view():
-    pass #TODO: Do this & Update method.
-
-
-"""
-! Gets the list of all Faculties
+! Return all Faculties
 * OvidioSantoro - 2022-02-25
 """
 @app.route("/faculties", methods=["GET"])
@@ -172,6 +213,28 @@ def coll_view():
 def faculties():
     return jsonify(list(map(lambda x: x.serialize(), Faculty.query.all())))
 
+
+# ----------------------------------------------------------------------------------------------
+#####################
+# ? FILE ENDPOINTS
+#####################
+# ----------------------------------------------------------------------------------------------
+#####################
+# ? HOME ENDPOINTS
+#####################
+
+"""
+! Renders the Landing Page
+* OvidioSantoro - 2022-03-XX
+"""
+@app.route("/")
+def sitemap():
+    return generate_sitemap(app)
+
+# ----------------------------------------------------------------------------------------------
+#####################
+# ? MESSAGE ENDPOINTS
+#####################
 
 """
 ! Gets the current user's received messages
@@ -212,6 +275,103 @@ def message():
     Message.newMessage(current_user.get_id(), receiver, content)
     return "Message sent"
 
+# ----------------------------------------------------------------------------------------------
+#####################
+#? NETWORK ENDPOINTS
+#####################
+
+"""
+! Creates or retrieves User's networks
+* OvidioSantoro - 2022-02-24
+"""
+@app.route("/networks", methods=["GET", "POST"])
+def networks():
+    if request.method == "GET":
+        networks = Network.query.filter_by(owner=current_user.id)
+        return jsonify(list(map(lambda x: x.serialize(), networks)))
+
+    else:
+        data = request.form
+        try:
+            name = data["name"]
+            link = data["link"]
+        except: 
+            return {"success": False,
+                    "msg": "Unable to create Network"}, 400
+    
+    Network.create(current_user.id, name, link)
+    return jsonify("Network Created")
+        
+
+
+"""
+! Updates User's network
+* OvidioSantoro - 2022-03-03
+"""
+@app.route("/networks/<int:networkId>", methods=["POST"])
+def network_update():
+    network_id = request.args.get("networkId")
+    networks = Network.query.filter_by(owner=current_user.id)
+
+
+"""
+!  Deletes User's network
+* OvidioSantoro - 2022-03-03
+"""
+@app.route("/networks/<int:networkId>/delete", methods=["POST"])
+def network_delete():
+    network_id = request.args.get("networkId")
+    networks = Network.query.filter_by(owner=current_user.id)
+
+# ----------------------------------------------------------------------------------------------
+#####################
+#? REGISTER & LOGIN ENDPOINTS
+#####################
+
+"""
+! Registers a User into the database
+* OvidioSantoro - 2022-02-23
+"""
+@app.route("/register", methods=["POST"])
+def register():
+
+    """ Check that every field is received """
+    data = request.form
+    try:
+        username = data["username"]
+        email = data["email"]
+        password = data["password"]
+        confirmation = data["confirmation"]
+        #college = data["college"] # This is used to generate the list of faculties
+        faculty = data["faculty"]
+        classes = data.getlist("classes")
+    except: 
+        return {"success": False,
+                "msg": "Unable to retrieve register data"}, 400
+
+    if password != confirmation:
+        return {"success": False,
+                "msg": "Password confirmation incorrect"}, 400
+    
+
+    """ Check that the unique properties are not already taken """
+    if User.query.filter_by(username=username).count() != 0:
+        return {"success": False,
+                "msg": f"Username {username} already in use"}, 400
+
+    if User.query.filter_by(email=email).count() != 0:
+        return {"success": False,
+                "msg": f"Email {email} already in registered"}, 400
+
+    # return jsonify(classes) 
+
+    """ Register the user into the database """
+    User.register(username, email, password, faculty, classes)
+
+    # TODO: Add an actual response
+    # TODO: Ideally, auto-perform a login for the newly created user
+    return jsonify("USER REGISTERED")
+
 
 """
 ! Performs the Login
@@ -249,6 +409,10 @@ def logout():
     # TODO: Redirect to the Landing Page
     return "You're logged out"
 
+# ----------------------------------------------------------------------------------------------
+#####################
+# ? USER ENDPOINTS (ME & PROFILE)
+#####################
 
 """
 ! Gets or Updates the current User's profile
@@ -299,105 +463,6 @@ def me():
 
 
 """
-! Deletes the current User's profile
-* OvidioSantoro - 2022-03-03
-"""
-@app.route("/me/delete", methods=["POST"])
-def me_delete():
-    User.delete(current_user.id)
-    return jsonify("Goodbye, you will be missed :(")
-
-
-"""
-! Creates or retrieves User's networks
-* OvidioSantoro - 2022-02-24
-"""
-@app.route("/networks", methods=["GET", "POST"])
-def networks():
-    if request.method == "GET":
-        networks = Network.query.filter_by(owner=current_user.id)
-        return jsonify(list(map(lambda x: x.serialize(), networks)))
-
-    else:
-        data = request.form
-        try:
-            name = data["name"]
-            link = data["link"]
-        except: 
-            return {"success": False,
-                    "msg": "Unable to create Network"}, 400
-    
-    Network.create(current_user.id, name, link)
-    return jsonify("Network Created")
-        
-
-
-"""
-! Updates User's network
-* OvidioSantoro - 2022-03-03
-"""
-@app.route("/networks/<int:networkId>", methods=["POST"])
-def network_update():
-    network_id = request.args.get("networkId")
-    networks = Network.query.filter_by(owner=current_user.id)
-
-
-"""
-!  Deletes User's network
-* OvidioSantoro - 2022-03-03
-"""
-@app.route("/networks/<int:networkId>/delete", methods=["POST"])
-def network_delete():
-    network_id = request.args.get("networkId")
-    networks = Network.query.filter_by(owner=current_user.id)
-
-
-"""
-! Registers a User into the database
-* OvidioSantoro - 2022-02-23
-"""
-@app.route("/register", methods=["POST"])
-def register():
-
-    """ Check that every field is received """
-    data = request.form
-    try:
-        username = data["username"]
-        email = data["email"]
-        password = data["password"]
-        confirmation = data["confirmation"]
-        #college = data["college"] # This is used to generate the list of faculties
-        faculty = data["faculty"]
-        classes = data.getlist("classes")
-    except: 
-        return {"success": False,
-                "msg": "Unable to retrieve register data"}, 400
-
-    if password != confirmation:
-        return {"success": False,
-                "msg": "Password confirmation incorrect"}, 400
-    
-
-    """ Check that the unique properties are not already taken """
-    if User.query.filter_by(username=username).count() != 0:
-        return {"success": False,
-                "msg": f"Username {username} already in use"}, 400
-
-    if User.query.filter_by(email=email).count() != 0:
-        return {"success": False,
-                "msg": f"Email {email} already in registered"}, 400
-
-    # return jsonify(classes) 
-
-    """ Register the user into the database """
-    User.register(username, email, password, faculty, classes)
-
-    # TODO: Add an actual response
-    # TODO: Ideally, auto-perform a login for the newly created user
-    return jsonify("USER REGISTERED")
-
-
-"""
 ! Retrieves the selected user's profile
 * OvidioSantoro - 2022-02-24
 """
@@ -408,6 +473,17 @@ def userProfile(request):
 
     return user
 
+
+"""
+! Deletes the current User's profile
+* OvidioSantoro - 2022-03-03
+"""
+@app.route("/me/delete", methods=["POST"])
+def me_delete():
+    User.delete(current_user.id)
+    return jsonify("Goodbye, you will be missed :(")
+
+# ----------------------------------------------------------------------------------------------
 
 # this only runs if `$ python src/main.py` is executed
 if __name__ == '__main__':
