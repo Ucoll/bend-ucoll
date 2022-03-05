@@ -222,6 +222,16 @@ def get_college(collegeId):
 def faculties():
     return jsonify(list(map(lambda x: x.serialize(), Faculty.query.all())))
 
+"""
+! Gets a certain Faculty
+* OvidioSantoro - 2022-03-05
+"""
+@app.route("/faculties/<int:facultyId>", methods=["GET"])
+@login_required
+def get_faculty(facultyId):
+    faculty = Faculty.query.get(facultyId)
+    return jsonify(faculty.serialize())
+
 
 # ----------------------------------------------------------------------------------------------
 #####################
