@@ -101,30 +101,24 @@ class Message(db.Model):
 
 
     # Creates a new message
-    def newMessage(sender, receiver, content):
+    def create(sender, receiver, content):
         message = Message(
-            sender=sender,
-            receiver=receiver, 
-            content=content,
+            sender = sender,
+            receiver = receiver, 
+            content = content,
         )
         db.session.add(message)
         db.session.commit()
 
-    # TODO: Add a way for a user to remove messages ONLY FOR HIMSELF
-    """
-    TODO: Decide whether a user should be able to edit or remove messages (à la WhatsApp)
-        or if they should be "permanent" (like an email).
-    """
+    # Updates a message in the database
+    def update(message, content):
+        message.content = content
+        db.session.commit()
 
-    # Returns all messages received by the user
-    def sentMessages(user_id):
-        messages = Message.query.filter_by(sender=user_id)
-        return messages
-
-    # Returns all messages sent by the user
-    def receivedMessages(user_id):
-        messages = Message.query.filter_by(receiver=user_id)
-        return messages
+    # Deletes a message from the database
+    def delete(message):
+        db.session.delete(message)
+        db.session.commit()
 
 # ----------------------------------------------------------------------------------------------
 

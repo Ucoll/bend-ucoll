@@ -260,43 +260,68 @@ def sitemap():
 #####################
 
 """
-! Gets the current user's received messages
+! Get received Messages or sends a Message
 * OvidioSantoro - 2022-02-24
 """
-@app.route("/inbox", methods=["GET"])
-#@login_required
-def receivedMessages():
-    return jsonify(list(map(lambda x: x.serialize(), Message.receivedMessages(current_user.get_id()).all())))
-
-
-"""
-! Gets the current user's sent messages
-* OvidioSantoro - 2022-02-24
-"""
-@app.route("/inbox/sent", methods=["GET"])
-@login_required
-def sentMessages():
-    return jsonify(list(map(lambda x: x.serialize(), Message.sentMessages(current_user.get_id()).all())))
-
-
-"""
-! Sends a message to another user
-* OvidioSantoro - 2022-02-24
-"""
-@app.route("/message", methods=["POST"])
+@app.route("/messages", methods=["GET", "POST"])
 @login_required
 def message():
-    """ Check that every field is received """
-    try:
-        receiver = request.form["receiver"]
-        content = request.form["content"]
-    except: 
-        return {"success": False,
-                "msg": "Unable to send message"}, 400
-    
-    # Creates the new message
-    Message.newMessage(current_user.get_id(), receiver, content)
-    return "Message sent"
+    if request.method == "GET":
+        messages = Message.query.filter_by(receiver = current_user.id)
+        return jsonify(list(map(lambda x: x.serialize(), messages)))
+
+    else:
+        try:
+            receiver = request.form["receiver"]
+            content = request.form["content"]
+        except: 
+            return {"success": False,
+                    "msg": "Unable to send message"}, 400
+        
+        Message.create(current_user.get_id(), receiver, content)
+        return redirect("/messages")
+
+"""
+! Gets sent messages
+* OvidioSantoro - 2022-03-05
+"""
+@app.route("/messages/sent", methods=["GET"])
+@login_required
+def sent_messages():
+    messages = Message.query.filter_by(sender = current_user.id)
+    return jsonify(list(map(lambda x: x.serialize(), messages)))
+
+"""
+! Gets a certain Message or deletes it
+* OvidioSantoro - 2022-03-05
+"""
+@app.route("/messages/<int:messageId>", methods=["GET", "POST"])
+@login_required
+def get_message(messageId):
+    message = Message.query.get(messageId)
+    if request.method == "GET":
+        return jsonify(message.serialize())
+
+    else:
+        try:
+            content = request.form["content"]
+        except: 
+            return {"success": False,
+                    "msg": "Unable to send message"}, 400
+        
+        Message.update(message, content)
+        return redirect("/messages/sent")
+
+"""
+! Delete a Message
+* OvidioSantoro - 2022-03-05
+"""
+@app.route("/messages/<int:messageId>/delete", methods=["POST"])
+@login_required
+def delete_messages(messageId):
+    message = Message.query.get(messageId)
+    Message.delete(message)
+    return redirect("/messages/sent")
 
 # ----------------------------------------------------------------------------------------------
 #####################
