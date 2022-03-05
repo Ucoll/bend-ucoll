@@ -294,7 +294,8 @@ class College(db.Model):
     def serialize(self):
         return{
             "id": self.id,
-            "name": self.name
+            "name": self.name,
+            "faculties": [faculty.serialize() for faculty in self.faculties]
         }
 
 # ----------------------------------------------------------------------------------------------

@@ -169,7 +169,6 @@ def get_coll(collId):
     else:
         title = request.form["title"]
         content = request.form["content"]
-        user = User.query.get(current_user.id)
         Coll.update(coll, title, content)
         return redirect(f"/colls/{collId}")
 
@@ -195,9 +194,19 @@ def delete_coll(collId):
 * OvidioSantoro - 2022-02-25
 """
 @app.route("/colleges", methods=["GET"])
-#@login_required
+@login_required
 def colleges():
     return jsonify(list(map(lambda x: x.serialize(), College.query.all())))
+
+"""
+! Gets a certain College
+* OvidioSantoro - 2022-03-05
+"""
+@app.route("/colleges/<int:collegeId>", methods=["GET"])
+@login_required
+def get_college(collegeId):
+    college = College.query.get(collegeId)
+    return jsonify(college.serialize())
 
 # ----------------------------------------------------------------------------------------------
 #####################
