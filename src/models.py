@@ -183,10 +183,10 @@ class User(db.Model, UserMixin):
         )
         db.session.add(user)
         db.session.commit()
+        return user
 
     # Updates the user's data in the database
-    def update(id, username, password, faculty, classes):
-        user = User.query.get(id)
+    def update(user, username, password, faculty, classes):
         user.username = username
         user.password = generate_password_hash(password)
         user.faculties = [Faculty.query.get(faculty)]
@@ -218,8 +218,8 @@ class Network(db.Model):
     def serialize(self):
         return{
             "id": self.id,
-            "owner": self.owner, 
-            "name": self.name ,
+            "owner": User.query.get(self.owner).username, 
+            "name": self.name,
             "link": self.link 
         }
 
@@ -234,19 +234,15 @@ class Network(db.Model):
         db.session.add(network)
         db.session.commit()
 
-    # Updates user's network the database
-    def update(user_id, username, password, faculty, classes):
-        user = User.query.get(user_id)
-        user.username = username
-        user.password = generate_password_hash(password)
-        user.faculties = [Faculty.query.get(faculty)]
-        user.classes = [Class.query.get(_class) for _class in classes]
+    # Updates a network the database
+    def update(network, name, link):
+        network.name = name
+        network.link = link
       
         db.session.commit()
 
     # Deletes a network from the database
-    def delete(id):
-        network = Network.query.get(id)
+    def delete(network):
         db.session.delete(network)
         db.session.commit()
 

@@ -348,28 +348,35 @@ def networks():
                     "msg": "Unable to create Network"}, 400
     
     Network.create(current_user.id, name, link)
-    return jsonify("Network Created")
-        
-
+    return redirect ("/networks")
 
 """
 ! Updates User's network
 * OvidioSantoro - 2022-03-03
 """
 @app.route("/networks/<int:networkId>", methods=["POST"])
-def network_update():
-    network_id = request.args.get("networkId")
-    networks = Network.query.filter_by(owner=current_user.id)
-
+def network_update(networkId):
+    data = request.form
+    try:
+        name = data["name"]
+        link = data["link"]
+    except: 
+        return {"success": False,
+                "msg": "Unable to create Network"}, 400
+    
+    network = Network.query.get(networkId)
+    Network.update(network, name, link)
+    return redirect ("/networks")
 
 """
 !  Deletes User's network
 * OvidioSantoro - 2022-03-03
 """
 @app.route("/networks/<int:networkId>/delete", methods=["POST"])
-def network_delete():
-    network_id = request.args.get("networkId")
-    networks = Network.query.filter_by(owner=current_user.id)
+def network_delete(networkId):
+    network = Network.query.get(networkId)
+    Network.delete(network)
+    return redirect("/networks")
 
 # ----------------------------------------------------------------------------------------------
 #####################
@@ -390,35 +397,29 @@ def register():
         email = data["email"]
         password = data["password"]
         confirmation = data["confirmation"]
-        #college = data["college"] # This is used to generate the list of faculties
         faculty = data["faculty"]
         classes = data.getlist("classes")
     except: 
         return {"success": False,
-                "msg": "Unable to retrieve register data"}, 400
+                "msg": "Unable to retrieve register data"}, 403
 
     if password != confirmation:
         return {"success": False,
-                "msg": "Password confirmation incorrect"}, 400
-    
+                "msg": "Password confirmation incorrect"}, 403
 
     """ Check that the unique properties are not already taken """
     if User.query.filter_by(username=username).count() != 0:
         return {"success": False,
-                "msg": f"Username {username} already in use"}, 400
+                "msg": f"Username {username} already in use"}, 403
 
     if User.query.filter_by(email=email).count() != 0:
         return {"success": False,
-                "msg": f"Email {email} already in registered"}, 400
-
-    # return jsonify(classes) 
+                "msg": f"Email {email} already in registered"}, 403
 
     """ Register the user into the database """
-    User.register(username, email, password, faculty, classes)
-
-    # TODO: Add an actual response
-    # TODO: Ideally, auto-perform a login for the newly created user
-    return jsonify("USER REGISTERED")
+    user = User.register(username, email, password, faculty, classes)
+    login_user(user)
+    return redirect("/home")
 
 
 """
@@ -427,24 +428,24 @@ def register():
 """
 @app.route("/login", methods=["POST"])
 def login():
-    # TODO: Redirect if the user accesses /login beign already logged in
     if current_user.is_authenticated:
-        return "You're already logged"
+        return redirect("/home")
     
-    # Check if the user is in the database
-    # TODO: add a double verification to allow logging in also with email
-    username = request.form["username"]
     password = request.form["password"]
+    if "username" not in request.form:
+        email = request.form["email"]
+        user = User.query.filter_by(email=email).first()
+    else:
+        username = request.form["username"]
+        user = User.query.filter_by(username=username).first()
 
-    user = User.query.filter_by(username=username).first()
     if user is not None and User.check_password(user.password, password):
         login_user(user)
+        # TODO: If the "remember me" is implemented, use this line instead:
         # login_user(user, remember=request.form["rememberme"])
-        # TODO: Redirect to the main page logged in
-        return "Very good, you're in!"
+        return redirect("/home")
     else: 
-        # TODO: Redirect back to the login page with the data already filled
-        return "Something went wrong, please check your data"
+        return "Something went wrong, please check your login data"
 
 
 """
@@ -454,8 +455,7 @@ def login():
 @app.route("/logout", methods=["POST"])
 def logout():
     logout_user()
-    # TODO: Redirect to the Landing Page
-    return "You're logged out"
+    return redirect("/")
 
 # ----------------------------------------------------------------------------------------------
 #####################
@@ -480,12 +480,11 @@ def me():
             old_password = data["old_password"]
             password = data["password"]
             confirmation = data["confirmation"]
-            #college = data["college"] # This is used to generate the list of faculties
             faculty = data["faculty"]
             classes = data.getlist("classes")
         except: 
             return {"success": False,
-                    "msg": "Unable to retrieve register data"}, 400
+                    "msg": "Unable to retrieve all the data data"}, 400
 
         if not User.check_password(user.password, old_password):
             return {"success": False,
@@ -493,7 +492,7 @@ def me():
 
         if password != confirmation:
             return {"success": False,
-                    "msg": "Password confirmation incorrect"}, 400
+                    "msg": "Password confirmation incorrect"}, 403
     
 
         """ Check that the unique properties are not already taken """
@@ -503,11 +502,9 @@ def me():
 
 
         """ Register the user into the database """
-        User.update(user.id, username, password, faculty, classes)
+        User.update(user, username, password, faculty, classes)
 
-        # TODO: Add an actual response
-        # TODO: Ideally, auto-perform a login for the newly created user
-        return jsonify("USER UPDATED")
+        return redirect("/me")
 
 
 """
