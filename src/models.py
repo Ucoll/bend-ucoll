@@ -19,11 +19,6 @@ ClassStudents = db.Table('class_students',
     db.Column('class_id', db.ForeignKey("class.id"), primary_key=True)
 )
 
-UserTags = db.Table('user_tags',
-    db.Column('user_id', db.ForeignKey("user.id"), primary_key=True),
-    db.Column('tag_id', db.ForeignKey("tag.id"), primary_key=True)
-)
-
 FavoriteFiles = db.Table('favorite_files',
     db.Column('user_id', db.ForeignKey("user.id"), primary_key=True),
     db.Column('file_id', db.ForeignKey("file.id"), primary_key=True)
@@ -138,7 +133,7 @@ class User(db.Model, UserMixin):
     biography = db.Column(db.Text)
     faculties = db.relationship("Faculty", secondary=FacultyMembers, back_populates="students")
     classes = db.relationship("Class", secondary=ClassStudents, back_populates="students")
-    tags = db.relationship("Tag", secondary=UserTags, back_populates="user")
+    tags = db.relationship("Tag", back_populates="user")
     faved_files = db.relationship("File", secondary=FavoriteFiles, back_populates="file_faved")
     liked_files = db.relationship("LikedFiles", back_populates="file_liker")
     fav_colls = db.relationship("Coll", secondary=FavoriteColls, back_populates="favs_colls")
@@ -255,7 +250,8 @@ class Network(db.Model):
 class Tag(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(20))
-    user = db.relationship("User", secondary=UserTags, back_populates="tags")
+    user = db.relationship("User", back_populates="tags")
+    user_id =  db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
 
     def __repr__(self):
         return f"Tag {self.name}"
@@ -266,26 +262,25 @@ class Tag(db.Model):
             "name": self.name
         }
 
-    # Creates a new Coll
+    # Creates a new Tag
     def create(name, user):
         tag = Tag(
             name = name,
             user = user, 
         )
 
-        db.session.add(coll)
+        db.session.add(tag)
         db.session.commit()
 
-    # Updates a Coll
-    def update(coll, title, content):
-        coll.title = title
-        coll.content = content
+    # Updates a Tag
+    def update(tag, name):
+        tag.name = name
         db.session.commit()
 
-    # Deletes a Coll from the database
-    def delete(coll):
-        db.session.delete(coll)
-        db.session.commit(
+    # Deletes a Tag from the database
+    def delete(tag):
+        db.session.delete(tag)
+        db.session.commit()
 
 # ----------------------------------------------------------------------------------------------
 

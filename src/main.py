@@ -480,8 +480,9 @@ def tags():
                     "msg": "Unable to retrieve all the data"}, 400
         
         Tag.create(name, user)
+    return redirect("/tags")
 
-@app.route("/tags/<inst:tagId>", methods=["POST"])
+@app.route("/tags/<int:tagId>", methods=["POST"])
 @login_required
 def update_tag(tagId): 
     try:
@@ -492,13 +493,14 @@ def update_tag(tagId):
     
     tag = Tag.query.get(tagId)
     Tag.update(tag, name)
+    return redirect("/tags")
 
-@app.route("/tags/<inst:tagId>/delete", methods=["POST"])
+@app.route("/tags/<int:tagId>/delete", methods=["POST"])
 @login_required
-def update_tag(tagId): 
-
+def delete_tag(tagId): 
     tag = Tag.query.get(tagId)
     Tag.delete(tag)
+    return redirect ("/tags")
 
 # ----------------------------------------------------------------------------------------------
 #####################
