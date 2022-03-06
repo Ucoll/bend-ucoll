@@ -459,6 +459,49 @@ def logout():
 
 # ----------------------------------------------------------------------------------------------
 #####################
+#? TAG ENDPOINTS
+#####################
+
+"""
+! Return all Tags associated to Current_User
+* OvidioSantoro - 2022-06-03
+"""
+@app.route("/tags", methods=["GET", "POST"])
+@login_required
+def tags():
+    user = User.query.get(current_user.id)
+    if request.method == "GET":
+        return jsonify(list(map(lambda x: x.serialize(), Tag.query.filter_by(user=user))))
+    else:
+        try:
+            name = request.form["name"]
+        except:
+            return {"success": False,
+                    "msg": "Unable to retrieve all the data"}, 400
+        
+        Tag.create(name, user)
+
+@app.route("/tags/<inst:tagId>", methods=["POST"])
+@login_required
+def update_tag(tagId): 
+    try:
+        name = request.form["name"]
+    except:
+        return {"success": False,
+                "msg": "Unable to retrieve all the data"}, 400
+    
+    tag = Tag.query.get(tagId)
+    Tag.update(tag, name)
+
+@app.route("/tags/<inst:tagId>/delete", methods=["POST"])
+@login_required
+def update_tag(tagId): 
+
+    tag = Tag.query.get(tagId)
+    Tag.delete(tag)
+
+# ----------------------------------------------------------------------------------------------
+#####################
 # ? USER ENDPOINTS (ME & PROFILE)
 #####################
 
@@ -484,7 +527,7 @@ def me():
             classes = data.getlist("classes")
         except: 
             return {"success": False,
-                    "msg": "Unable to retrieve all the data data"}, 400
+                    "msg": "Unable to retrieve all the data"}, 400
 
         if not User.check_password(user.password, old_password):
             return {"success": False,

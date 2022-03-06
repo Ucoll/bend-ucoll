@@ -138,7 +138,7 @@ class User(db.Model, UserMixin):
     biography = db.Column(db.Text)
     faculties = db.relationship("Faculty", secondary=FacultyMembers, back_populates="students")
     classes = db.relationship("Class", secondary=ClassStudents, back_populates="students")
-    tags = db.relationship("Tag", secondary=UserTags, back_populates="users")
+    tags = db.relationship("Tag", secondary=UserTags, back_populates="user")
     faved_files = db.relationship("File", secondary=FavoriteFiles, back_populates="file_faved")
     liked_files = db.relationship("LikedFiles", back_populates="file_liker")
     fav_colls = db.relationship("Coll", secondary=FavoriteColls, back_populates="favs_colls")
@@ -255,7 +255,7 @@ class Network(db.Model):
 class Tag(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(20))
-    users = db.relationship("User", secondary=UserTags, back_populates="tags")
+    user = db.relationship("User", secondary=UserTags, back_populates="tags")
 
     def __repr__(self):
         return f"Tag {self.name}"
@@ -266,6 +266,26 @@ class Tag(db.Model):
             "name": self.name
         }
 
+    # Creates a new Coll
+    def create(name, user):
+        tag = Tag(
+            name = name,
+            user = user, 
+        )
+
+        db.session.add(coll)
+        db.session.commit()
+
+    # Updates a Coll
+    def update(coll, title, content):
+        coll.title = title
+        coll.content = content
+        db.session.commit()
+
+    # Deletes a Coll from the database
+    def delete(coll):
+        db.session.delete(coll)
+        db.session.commit(
 
 # ----------------------------------------------------------------------------------------------
 
