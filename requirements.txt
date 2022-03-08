@@ -1,0 +1,16 @@
+argcomplete==2.0.0
+certifi==2021.10.8
+click==8.0.4
+colorama==0.4.4
+distlib==0.3.4
+filelock==3.6.0
+gunicorn==20.1.0
+packaging==21.3
+pipenv==2022.1.8
+pipx==1.0.0
+platformdirs==2.5.1
+pyparsing==3.0.7
+six==1.16.0
+userpath==1.8.0
+virtualenv==20.13.1
+virtualenv-clone==0.5.7
