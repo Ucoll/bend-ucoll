@@ -184,6 +184,21 @@ def delete_coll(collId):
     Coll.delete(coll)
     return redirect("/colls")
 
+"""
+! Handles the Like/Dislike clicks
+* OvidioSantoro - 2022-03-08
+"""
+@app.route("/colls/<int:collId>/like", methods=["POST"])
+@login_required
+def handle_like(collId):
+    coll = Coll.query.get(collId).first()
+    likeType = request.form.get["like"]
+    if coll == None:
+        pass
+    else:
+        # TODO: Complete when FEND is ready to test how to send the response.
+
+
 # ----------------------------------------------------------------------------------------------
 #####################
 # ? COLLEGE ENDPOINTS

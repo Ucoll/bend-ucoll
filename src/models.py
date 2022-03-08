@@ -71,6 +71,12 @@ class LikedColls(db.Model):
             "isLike": self.is_like,
         }
 
+    def createLike():
+        pass
+
+    def removeLike():
+        pass
+
 # ----------------------------------------------------------------------------------------------
 
 """
