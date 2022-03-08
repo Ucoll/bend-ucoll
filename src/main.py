@@ -56,6 +56,13 @@ def unauthorized():
     # TODO: Return an actual unauthorized handler
     return "YOU NEED TO BE LOGGED IN"
 
+"""
+TODO: Main route
+"""
+@app.route("/", methods=["GET"])
+def todo():
+    return jsonify("Welcome to the Backend")
+
 
 # ----------------------------------------------------------------------------------------------
 #####################
