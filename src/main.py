@@ -196,6 +196,7 @@ def handle_like(collId):
     if coll == None:
         pass
     else:
+        pass
         # TODO: Complete when FEND is ready to test how to send the response.
 
 
