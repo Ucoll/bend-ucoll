@@ -5,6 +5,7 @@ This module takes care of starting the API Server, Loading the DB and Adding the
 import os
 from flask import Flask, redirect, render_template, request, jsonify, url_for
 from flask_migrate import Migrate
+from sqlalchemy import null
 from flask_swagger import swagger
 from flask_cors import CORS
 from flask_login import LoginManager, login_required, current_user, login_user, logout_user
@@ -74,7 +75,7 @@ def todo():
 * OvidioSantoro - 2022-02-25
 """
 @app.route("/classes", methods=["GET"])
-@login_required
+#@login_required
 def classes():
     return jsonify(list(map(lambda x: x.serialize(), Class.query.all())))
 
@@ -83,7 +84,7 @@ def classes():
 * OvidioSantoro - 2022-03-04
 """
 @app.route("/classes/<int:classId>", methods=["GET", "POST"])
-@login_required
+#@login_required
 def get_class(classId):
     _class = Class.query.get(classId)
     if request.method == "GET":
@@ -100,7 +101,7 @@ def get_class(classId):
 * OvidioSantoro - 2022-03-04
 """
 @app.route("/classes/<int:classId>/leave", methods=["POST"])
-@login_required
+#@login_required
 def leave_class(classId):
     _class = Class.query.get(classId)
     user = User.query.get(current_user.id)
@@ -120,7 +121,7 @@ def leave_class(classId):
 * OvidioSantoro - 2022-02-25
 """
 @app.route("/colls", methods=["GET", "POST"])
-@login_required
+#@login_required
 def colls():
     # Return all Colls
     if request.method == "GET":
@@ -158,7 +159,7 @@ def colls():
 * OvidioSantoro - 2022-02-25
 """
 @app.route("/colls/class/<int:classId>", methods=["GET"])
-@login_required
+#@login_required
 def get_class_colls(classId):
     colls = Class.query.filter_by(class_id = classId)
     return jsonify(list(map(lambda x: x.serialize(), colls)))
@@ -168,7 +169,7 @@ def get_class_colls(classId):
 * OvidioSantoro - 2022-02-25
 """
 @app.route("/colls/<int:collId>", methods=["GET", "POST"])
-@login_required
+##@login_required
 def get_coll(collId):
     coll = Coll.query.get(collId)
     if request.method == "GET":
@@ -185,7 +186,7 @@ def get_coll(collId):
 * OvidioSantoro - 2022-03-05
 """
 @app.route("/colls/<int:collId>/delete", methods=["POST"])
-@login_required
+#@login_required
 def delete_coll(collId):
     coll = Coll.query.get(collId)
     Coll.delete(coll)
@@ -195,17 +196,36 @@ def delete_coll(collId):
 ! Handles the Like/Dislike clicks
 * OvidioSantoro - 2022-03-08
 """
-@app.route("/colls/<int:collId>/like", methods=["POST"])
-@login_required
+@app.route("/colls/<int:collId>/like", methods=["GET", "POST"])
+#@login_required
 def handle_like(collId):
-    coll = Coll.query.get(collId).first()
-    likeType = request.form.get["like"]
-    if coll == None:
-        pass
-    else:
-        pass
-        # TODO: Complete when FEND is ready to test how to send the response.
+    # TODO: Remove hardcoded User (2 = Harry Potter)
+    likedColl = LikedColls.query.filter_by(coll_id=collId, user_id=2).first()
 
+    if request.method == "GET":
+        if not likedColl:
+            return jsonify(None)
+        else:
+            return jsonify(likedColl.is_like)
+    
+    else:
+        try:
+            like = request.json["like"]
+        except: 
+            return {"success": False,
+                    "msg": "Unable to like Coll"}, 500
+
+        if not likedColl:
+            # TODO: Remove hardcoded User (2 = Harry Potter)
+            LikedColls.create(2, collId, like)
+            return jsonify("Coll liked/disliked")
+        else:
+            if likedColl.is_like == like:
+                LikedColls.delete(likedColl)
+                return jsonify("Valoration removed")
+            else:
+                LikedColls.update(likedColl, not like)
+                return jsonify("Valoration updated")
 
 # ----------------------------------------------------------------------------------------------
 #####################
@@ -217,7 +237,7 @@ def handle_like(collId):
 * OvidioSantoro - 2022-02-25
 """
 @app.route("/colleges", methods=["GET"])
-@login_required
+#@login_required
 def colleges():
     return jsonify(list(map(lambda x: x.serialize(), College.query.all())))
 
@@ -226,7 +246,7 @@ def colleges():
 * OvidioSantoro - 2022-03-05
 """
 @app.route("/colleges/<int:collegeId>", methods=["GET"])
-@login_required
+#@login_required
 def get_college(collegeId):
     college = College.query.get(collegeId)
     return jsonify(college.serialize())
@@ -241,7 +261,7 @@ def get_college(collegeId):
 * OvidioSantoro - 2022-02-25
 """
 @app.route("/faculties", methods=["GET"])
-#@login_required
+##@login_required
 def faculties():
     return jsonify(list(map(lambda x: x.serialize(), Faculty.query.all())))
 
@@ -250,7 +270,7 @@ def faculties():
 * OvidioSantoro - 2022-03-05
 """
 @app.route("/faculties/<int:facultyId>", methods=["GET"])
-@login_required
+#@login_required
 def get_faculty(facultyId):
     faculty = Faculty.query.get(facultyId)
     return jsonify(faculty.serialize())
@@ -287,7 +307,7 @@ def sitemap():
 * OvidioSantoro - 2022-02-24
 """
 @app.route("/messages", methods=["GET", "POST"])
-@login_required
+#@login_required
 def message():
     if request.method == "GET":
         messages = Message.query.filter_by(receiver = current_user.id)
@@ -309,7 +329,7 @@ def message():
 * OvidioSantoro - 2022-03-05
 """
 @app.route("/messages/sent", methods=["GET"])
-@login_required
+#@login_required
 def sent_messages():
     messages = Message.query.filter_by(sender = current_user.id)
     return jsonify(list(map(lambda x: x.serialize(), messages)))
@@ -319,7 +339,7 @@ def sent_messages():
 * OvidioSantoro - 2022-03-05
 """
 @app.route("/messages/<int:messageId>", methods=["GET", "POST"])
-@login_required
+#@login_required
 def get_message(messageId):
     message = Message.query.get(messageId)
     if request.method == "GET":
@@ -340,7 +360,7 @@ def get_message(messageId):
 * OvidioSantoro - 2022-03-05
 """
 @app.route("/messages/<int:messageId>/delete", methods=["POST"])
-@login_required
+#@login_required
 def delete_messages(messageId):
     message = Message.query.get(messageId)
     Message.delete(message)
@@ -490,7 +510,7 @@ def logout():
 * OvidioSantoro - 2022-06-03
 """
 @app.route("/tags", methods=["GET", "POST"])
-@login_required
+#@login_required
 def tags():
     user = User.query.get(current_user.id)
     if request.method == "GET":
@@ -506,7 +526,7 @@ def tags():
     return redirect("/tags")
 
 @app.route("/tags/<int:tagId>", methods=["POST"])
-@login_required
+#@login_required
 def update_tag(tagId): 
     try:
         name = request.form["name"]
@@ -519,7 +539,7 @@ def update_tag(tagId):
     return redirect("/tags")
 
 @app.route("/tags/<int:tagId>/delete", methods=["POST"])
-@login_required
+#@login_required
 def delete_tag(tagId): 
     tag = Tag.query.get(tagId)
     Tag.delete(tag)
@@ -600,5 +620,5 @@ def me_delete():
 
 # this only runs if `$ python src/main.py` is executed
 if __name__ == '__main__':
-    PORT = int(os.environ.get('PORT', 3000))
+    PORT = int(os.environ.get('PORT', 3702))
     app.run(host='0.0.0.0', port=PORT, debug=False)

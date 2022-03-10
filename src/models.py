@@ -1,7 +1,8 @@
+from email.policy import default
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
-import datetime
+from datetime import datetime, date
 
 db = SQLAlchemy()
 
@@ -57,7 +58,7 @@ class LikedFiles(db.Model):
 class LikedColls(db.Model):
     user_id = db.Column(db.ForeignKey("user.id"), primary_key=True)
     coll_id = db.Column(db.ForeignKey("coll.id"), primary_key=True)
-    is_like = db.Column(db.Boolean, default=True)
+    is_like = db.Column(db.Boolean)
     coll_liker = db.relationship("User", back_populates="liked_colls")
     liked_coll = db.relationship("Coll", back_populates="coll_liked")
 
@@ -71,11 +72,26 @@ class LikedColls(db.Model):
             "isLike": self.is_like,
         }
 
-    def createLike():
-        pass
+    def create(user, coll, like):
+        likedColl = LikedColls(
+            user_id = user,
+            coll_id = coll,
+            is_like = like,
+            coll_liker = User.query.get(user),
+            liked_coll = Coll.query.get(coll)
+        )
+        db.session.add(likedColl)
+        db.session.commit()
+        return likedColl
 
-    def removeLike():
-        pass
+    def update(likedColl, like):
+        likedColl.is_like = like
+        db.session.commit()
+
+    def delete(likeColl):
+        db.session.delete(likeColl)
+        db.session.commit()
+        
 
 # ----------------------------------------------------------------------------------------------
 
@@ -88,6 +104,8 @@ class Message(db.Model):
     sender = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
     receiver = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
     content = db.Column(db.Text, nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.now())
+
 
     def __repr__(self):
         return f"Message #{self.id} from User #{self.sender} to User #{self.receiver}"
@@ -132,7 +150,8 @@ class User(db.Model, UserMixin):
     username = db.Column(db.String(30), unique=True, nullable=False)
     email = db.Column(db.String(60), unique=True, nullable=False)
     password = db.Column(db.String(120), nullable=False)
-    registered = db.Column(db.Date, default=datetime.date.today())
+    portrait = db.Column(db.String(300), default="https://i.pravatar.cc/300")
+    registered = db.Column(db.Date, default=date.today())
     name = db.Column(db.String(30))
     surname = db.Column(db.String(30))
     description = db.Column(db.Text)
@@ -158,10 +177,11 @@ class User(db.Model, UserMixin):
         return {
             "id": self.id,
             "username": self.username,
+            "portrait": self.portrait,
             "email": self.email,
             "registered": self.registered,
             "faculties": list(map(lambda x: x.serialize(), self.faculties)),
-            "tags": self.tags,
+            "tags": list(map(lambda x: x.serialize(), self.tags)),
             "name": self.name,
             "surname": self.surname,
             "description": self.description,
@@ -381,6 +401,8 @@ class File(db.Model):
     type = db.Column(db.String(12), nullable=False)
     file_liked = db.relationship("LikedFiles", back_populates="liked_file")
     file_faved = db.relationship("User", secondary=FavoriteFiles, back_populates="faved_files")
+    timestamp = db.Column(db.DateTime, default=datetime.now())
+
 
     def __repr__(self):
         return f"<{self.title}> uploaded by {self.uploader} in {self._class}"
@@ -411,6 +433,7 @@ class Coll(db.Model):
     favs_colls = db.relationship("User", secondary=FavoriteColls, back_populates="fav_colls")
     coll_liked = db.relationship("LikedColls", back_populates="liked_coll")
     comments = db.relationship("Comment", back_populates="coll")
+    timestamp = db.Column(db.DateTime, default=datetime.now())
 
     def __repr__(self):
         return f"{self.title} in {self._class}"
@@ -418,10 +441,18 @@ class Coll(db.Model):
     def serialize(self):
         return{
             "id": self.id,
+            "portrait": User.query.get(self.sender_id).portrait,
             "sender": User.query.get(self.sender_id).username,
-            "title": self.title,
             "class": Class.query.get(self.class_id).name,
-            "content": self.content
+            "studies": [faculty.name for faculty in User.query.get(self.sender_id).faculties],
+            "timestamp": f"{self.timestamp.strftime('%c')}",
+            "title": self.title,
+            "likes": [{like.coll_liker.username: like.is_like} for like in LikedColls.query.filter_by(coll_id=self.id)],
+            "content": self.content,
+            "threads": "TODO",
+            "comments": [comment.content for comment in self.comments],
+            "favs": [fav.username for fav in self.favs_colls],
+            "shares": "TODO"
         }
 
 
@@ -462,6 +493,8 @@ class Comment(db.Model):
     commenter = db.relationship("User", back_populates="comments")
     coll_id = db.Column(db.Integer, db.ForeignKey("coll.id"))
     coll = db.relationship("Coll", back_populates="comments")
+    timestamp = db.Column(db.DateTime, default=datetime.now())
+
 
     def __repr__(self):
         return f"User #{self.commenter} commented in '{self.coll}'"
