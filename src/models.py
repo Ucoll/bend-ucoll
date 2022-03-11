@@ -88,8 +88,8 @@ class LikedColls(db.Model):
         likedColl.is_like = like
         db.session.commit()
 
-    def delete(likeColl):
-        db.session.delete(likeColl)
+    def delete(likedColl):
+        db.session.delete(likedColl)
         db.session.commit()
         
 
@@ -445,7 +445,7 @@ class Coll(db.Model):
             "sender": User.query.get(self.sender_id).username,
             "class": Class.query.get(self.class_id).name,
             "studies": [faculty.name for faculty in User.query.get(self.sender_id).faculties],
-            "timestamp": f"{self.timestamp.strftime('%c')}",
+            "timestamp": f"{self.timestamp.strftime('%x, %X')}",
             "title": self.title,
             "likes": [{like.coll_liker.username: like.is_like} for like in LikedColls.query.filter_by(coll_id=self.id)],
             "content": self.content,
@@ -478,6 +478,20 @@ class Coll(db.Model):
     # Deletes a Coll from the database
     def delete(coll):
         db.session.delete(coll)
+        db.session.commit()
+
+    # Favs a Coll
+    def fav(coll, user):
+        favs = coll.favs_colls
+        favs.append(user)
+        coll.favs_colls = favs
+        db.session.commit()
+
+    # Favs a Coll
+    def unfav(coll, user):
+        favs = coll.favs_colls
+        favs.remove(user)
+        coll.favs_colls = favs
         db.session.commit()
 
 # ----------------------------------------------------------------------------------------------

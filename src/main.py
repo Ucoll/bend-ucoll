@@ -10,6 +10,7 @@ from flask_swagger import swagger
 from flask_cors import CORS
 from flask_login import LoginManager, login_required, current_user, login_user, logout_user
 from utils import APIException, generate_sitemap
+import operator
 from admin import setup_admin
 from models import db, User, Message, Network, Tag, College, Faculty, Class, File, Coll, Comment, LikedFiles, LikedColls
 
@@ -62,7 +63,7 @@ TODO: Main route
 """
 @app.route("/", methods=["GET"])
 def todo():
-    return jsonify("Welcome to the Backend")
+    return jsonify("Ucoll Backend is up and running!")
 
 
 # ----------------------------------------------------------------------------------------------
@@ -224,8 +225,28 @@ def handle_like(collId):
                 LikedColls.delete(likedColl)
                 return jsonify("Valoration removed")
             else:
-                LikedColls.update(likedColl, not like)
+                LikedColls.update(likedColl, like)
                 return jsonify("Valoration updated")
+
+"""
+! Handles the Fav clicks
+* OvidioSantoro - 2022-03-10
+"""
+@app.route("/colls/<int:collId>/fav", methods=["POST"])
+#@login_required
+def handle_fav(collId):
+    # TODO: Remove hardcoded User (2 = Harry Potter)
+    user_id = 2
+    user = User.query.get(user_id)
+    favedColls = list(map(lambda x: x.serialize(),User.query.get(user_id).fav_colls))
+    coll = Coll.query.get(collId)
+
+    if coll.serialize() in favedColls:
+        Coll.unfav(coll, user)
+        return jsonify("Coll unfaved")
+    else:
+        Coll.fav(coll, user)
+        return jsonify("Coll faved") 
 
 # ----------------------------------------------------------------------------------------------
 #####################
