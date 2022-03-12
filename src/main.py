@@ -81,6 +81,15 @@ def classes():
     return jsonify(list(map(lambda x: x.serialize(), Class.query.all())))
 
 """
+! Gets the list of all Classes from a Faculty
+* OvidioSantoro - 2022-02-25
+"""
+@app.route("/classes/faculty/<int:facultyId>", methods=["GET"])
+#@login_required
+def faculty_classes(facultyId):
+    return jsonify(list(map(lambda x: x.serialize(), Class.query.filter_by(faculty_id=facultyId))))
+
+"""
 ! Gets a certain Class or add current user to it
 * OvidioSantoro - 2022-03-04
 """
@@ -285,6 +294,15 @@ def get_college(collegeId):
 ##@login_required
 def faculties():
     return jsonify(list(map(lambda x: x.serialize(), Faculty.query.all())))
+
+"""
+! Return all Faculties from a College
+* OvidioSantoro - 2022-02-25
+"""
+@app.route("/faculties/college/<int:collegeId>", methods=["GET"])
+##@login_required
+def college_faculties(collegeId):
+    return jsonify(list(map(lambda x: x.serialize(), Faculty.query.filter_by(college_id=collegeId))))
 
 """
 ! Gets a certain Faculty
