@@ -132,18 +132,19 @@ def colls():
     else:
         """ Check that every field is received """
         try:
-            title = request.form["title"]
-            content = request.form["content"]
-            _class = request.form["_class"]
-            type = request.form["type"]
+            title = request.json["title"]
+            content = request.json["content"]
+            _class = request.json["_class"]
+            type = request.json["type"]
         except: 
             return {"success": False,
-                    "msg": "Unable to create Coll"}, 400
+                    "msg": "Unable to receive all data"}, 400
     
         # If all fields are filled, save the Coll
         if title != "" and content != "" and _class != "" and type != "":
+            # TODO: Change hardocded user when register is implemented in the front
             Coll.create(
-                current_user.get_id(), 
+                2, 
                 title,
                 content,
                 _class,
@@ -153,7 +154,6 @@ def colls():
         else:
             return {"success": False,
                     "msg": "Unable to create Coll"}, 400
-
 
 """
 ! Returns the Colls of a certain Class
@@ -621,11 +621,9 @@ def me():
 * OvidioSantoro - 2022-02-24
 """
 @app.route("/user/<int:userId>", methods=["GET"])
-def userProfile(request):
-    userId = request.args.get("userId")
+def userProfile(userId):
     user = User.query.get(userId)
-
-    return user
+    return jsonify(user.serialize())
 
 
 """

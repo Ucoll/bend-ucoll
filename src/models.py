@@ -179,6 +179,7 @@ class User(db.Model, UserMixin):
             "username": self.username,
             "portrait": self.portrait,
             "email": self.email,
+            "classes": list(map(lambda x: x.serialize(), self.classes)),
             "registered": self.registered,
             "faculties": list(map(lambda x: x.serialize(), self.faculties)),
             "tags": list(map(lambda x: x.serialize(), self.tags)),
@@ -449,10 +450,9 @@ class Coll(db.Model):
             "title": self.title,
             "likes": [{like.coll_liker.username: like.is_like} for like in LikedColls.query.filter_by(coll_id=self.id)],
             "content": self.content,
-            "threads": "TODO",
             "comments": [comment.content for comment in self.comments],
             "favs": [fav.username for fav in self.favs_colls],
-            "shares": "TODO"
+            "type": self.type
         }
 
 
