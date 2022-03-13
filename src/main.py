@@ -8,7 +8,10 @@ from flask_migrate import Migrate
 from sqlalchemy import null
 from flask_swagger import swagger
 from flask_cors import CORS
-from flask_login import LoginManager, login_required, current_user, login_user, logout_user
+from flask_jwt_extended import create_access_token
+from flask_jwt_extended import get_jwt_identity
+from flask_jwt_extended import jwt_required
+from flask_jwt_extended import JWTManager
 from utils import APIException, generate_sitemap
 import operator
 from admin import setup_admin
@@ -32,31 +35,27 @@ setup_admin(app)
 def handle_invalid_usage(error):
     return jsonify(error.to_dict()), error.status_code
 
-""" Configures the Login Manager & secret key for sessions """
-# TODO: Change the Flask_login for a custom JWT Token generator and verifier
-login_manager = LoginManager(app)
-login_manager.init_app(app)
-# TODO: Redirect user to the Log In page
-# login_manager.login_view = "login"
-app.secret_key = "4c73578c1dade3172998bfc97d1d14801e1a27c31ced907653f694efc939d017"
-
+""" Setup the Flask-JWT-Extended extension """
+#TODO: STORE THIS KEY INSIDE THE ENV VARIABLES
+app.config["JWT_SECRET_KEY"] = "4c73578c1dade3172998bfc97d1d14801e1a27c31ced907653f694efc939d017"
+jwt = JWTManager(app)
 # ----------------------------------------------------------------------------------------------
 
-"""
-! Callback to reload the user from the ID stored in the session
-* OvidioSantoro - 2022-02-23
-"""
-@login_manager.user_loader
-def load_user(user_id):
-    if User.query.get(user_id):
-        return User.query.get(user_id)
-    else:
-        return None
+# """
+# ! Callback to reload the user from the ID stored in the session
+# * OvidioSantoro - 2022-02-23
+# """
+# @login_manager.user_loader
+# def load_user(user_id):
+#     if User.query.get(user_id):
+#         return User.query.get(user_id)
+#     else:
+#         return None
 
-@login_manager.unauthorized_handler
-def unauthorized():
-    # TODO: Return an actual unauthorized handler
-    return "YOU NEED TO BE LOGGED IN"
+# @login_manager.unauthorized_handler
+# def unauthorized():
+#     # TODO: Return an actual unauthorized handler
+#     return "YOU NEED TO BE LOGGED IN"
 
 """
 TODO: Main route
@@ -101,7 +100,8 @@ def get_class(classId):
         return jsonify(_class.serialize())
     else:
         students = [student for student in _class.students]
-        user = User.query.get(current_user.id)
+        #TODO: CURRENT USER
+        user = User.query.get(2)
         students.append(user)
         Class.update_students(_class.id, students)
         return redirect(f"/classes/{classId}")
@@ -114,7 +114,8 @@ def get_class(classId):
 #@login_required
 def leave_class(classId):
     _class = Class.query.get(classId)
-    user = User.query.get(current_user.id)
+    #TODO: CURRENT USER
+    user = User.query.get(2)
     students = [student for student in _class.students]
     students.remove(user)
     Class.update_students(_class.id, students)
@@ -349,7 +350,8 @@ def sitemap():
 #@login_required
 def message():
     if request.method == "GET":
-        messages = Message.query.filter_by(receiver = current_user.id)
+        #TODO: CURRENT USER
+        messages = Message.query.filter_by(receiver = 2)
         return jsonify(list(map(lambda x: x.serialize(), messages)))
 
     else:
@@ -360,7 +362,8 @@ def message():
             return {"success": False,
                     "msg": "Unable to send message"}, 400
         
-        Message.create(current_user.get_id(), receiver, content)
+        #TODO: CURRENT USER AND CHECK, THIS MIGHT BE WRONG
+        Message.create(2, receiver, content)
         return redirect("/messages")
 
 """
@@ -370,7 +373,8 @@ def message():
 @app.route("/messages/sent", methods=["GET"])
 #@login_required
 def sent_messages():
-    messages = Message.query.filter_by(sender = current_user.id)
+    #TODO: CURRENT USER
+    messages = Message.query.filter_by(sender = 2)
     return jsonify(list(map(lambda x: x.serialize(), messages)))
 
 """
@@ -417,7 +421,8 @@ def delete_messages(messageId):
 @app.route("/networks", methods=["GET", "POST"])
 def networks():
     if request.method == "GET":
-        networks = Network.query.filter_by(owner=current_user.id)
+        #TODO: CURRENT USER
+        networks = Network.query.filter_by(owner=2)
         return jsonify(list(map(lambda x: x.serialize(), networks)))
 
     else:
@@ -429,7 +434,8 @@ def networks():
             return {"success": False,
                     "msg": "Unable to create Network"}, 400
     
-    Network.create(current_user.id, name, link)
+    #TODO: CURRENT USER
+    Network.create(2, name, link)
     return redirect ("/networks")
 
 """
@@ -473,14 +479,14 @@ def network_delete(networkId):
 def register():
 
     """ Check that every field is received """
-    data = request.form
+    data = request.json
     try:
         username = data["username"]
         email = data["email"]
         password = data["password"]
         confirmation = data["confirmation"]
         faculty = data["faculty"]
-        classes = data.getlist("classes")
+        classes = data["classes"]
     except: 
         return {"success": False,
                 "msg": "Unable to retrieve register data"}, 403
@@ -499,9 +505,10 @@ def register():
                 "msg": f"Email {email} already in registered"}, 403
 
     """ Register the user into the database """
+    print(classes)
     user = User.register(username, email, password, faculty, classes)
-    login_user(user)
-    return redirect("/home")
+    # TODO: Auto log in the user when registered
+    return jsonify("USER REGISTERED")
 
 
 """
@@ -510,34 +517,19 @@ def register():
 """
 @app.route("/login", methods=["POST"])
 def login():
-    if current_user.is_authenticated:
-        return redirect("/home")
+    #TODO: CURRENT USER
+    # if current_user.is_authenticated:
+    #     return redirect("/home")
     
-    password = request.form["password"]
-    if "username" not in request.form:
-        email = request.form["email"]
-        user = User.query.filter_by(email=email).first()
-    else:
-        username = request.form["username"]
-        user = User.query.filter_by(username=username).first()
+    password = request.json["password"]
+    email = request.json["email"]
+    user = User.query.filter_by(email=email).first()
 
     if user is not None and User.check_password(user.password, password):
-        login_user(user)
-        # TODO: If the "remember me" is implemented, use this line instead:
-        # login_user(user, remember=request.form["rememberme"])
-        return redirect("/home")
+        access_token = create_access_token(identity=email)
+        return jsonify(access_token=access_token)
     else: 
         return "Something went wrong, please check your login data"
-
-
-"""
-! Logs out the user
-* OvidioSantoro - 2022-02-23
-"""
-@app.route("/logout", methods=["POST"])
-def logout():
-    logout_user()
-    return redirect("/")
 
 # ----------------------------------------------------------------------------------------------
 #####################
@@ -545,13 +537,14 @@ def logout():
 #####################
 
 """
-! Return all Tags associated to Current_User
+! Return all Tags associated to the User
 * OvidioSantoro - 2022-06-03
 """
 @app.route("/tags", methods=["GET", "POST"])
 #@login_required
 def tags():
-    user = User.query.get(current_user.id)
+    #TODO: CURRENT USER
+    user = User.query.get(2)
     if request.method == "GET":
         return jsonify(list(map(lambda x: x.serialize(), Tag.query.filter_by(user=user))))
     else:
@@ -594,8 +587,10 @@ def delete_tag(tagId):
 * OvidioSantoro - 2022-03-03
 """
 @app.route("/me", methods=["GET", "POST"])
+@jwt_required()
 def me():
-    user = User.query.get(current_user.id)
+    email = get_jwt_identity()
+    user = User.query.filter_by(email=email).first()
     if request.method == "GET":
         return jsonify(user.serialize())
         
@@ -650,7 +645,8 @@ def userProfile(userId):
 """
 @app.route("/me/delete", methods=["POST"])
 def me_delete():
-    User.delete(current_user.id)
+    #TODO: CURRENT USER
+    User.delete(2)
     return jsonify("Goodbye, you will be missed :(")
 
 # ----------------------------------------------------------------------------------------------
