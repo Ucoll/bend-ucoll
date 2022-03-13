@@ -46,7 +46,7 @@ class LikedFiles(db.Model):
     liked_file = db.relationship("File", back_populates="file_liked")
 
     def __repr__(self):
-        return f"{self.file_liker} like/dislike to {self.liked_file}"
+        return f"{self.file_liker}"
 
     def serialize(self):
         return{
